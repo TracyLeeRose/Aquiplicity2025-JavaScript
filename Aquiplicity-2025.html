@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Aquiplicity 2025 JavaScript (Patch & Blend)</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+            margin: 10px;
+            max-width: 100%;
+            max-height: 90vh;
+        }
+        #status {
+            margin: 10px;
+            font-family: Arial, sans-serif;
+        }
+        button {
+            margin: 10px;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+    <input type="file" id="imageInput" multiple accept="image/*">
+    <button id="composeButton" onclick="composeImages()" disabled>Compose!</button>
+    <div id="status">Upload images to begin</div>
+    <canvas id="canvasOutput"></canvas>
+    <button onclick="saveImage()">Save Master Image</button>
+    
+    <script type="text/javascript">
+        const THRESHOLDS = [0.05 * 255, 0.08 * 255, 0.10 * 255]; // Adjusted to 4%, 8%, 12% for subtler differences
+        const PATCH_SIZE = 5;
+        let canvas = document.getElementById('canvasOutput');
+        let ctx = canvas.getContext('2d');
+        let imgBase = null;
+        let imagesStack = [];
+        let status = document.getElementById('status');
+        let composeButton = document.getElementById('composeButton');
+        let originalWidth, originalHeight;
+        let lassoPoints = []; // Shared for both lassos, differentiated by key
+        let drawingLasso = false;
+        let isPatchLasso = false; // True for Ctrl (patching), false for Alt (blending)
+        let masterImages = []; // Store combined master image
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!canvas || !ctx) {
+                console.error('Canvas or context not initialized');
+                status.textContent = 'Error: Canvas not initialized';
+                return;
+            }
+            document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+            setupCanvasEvents();
+            console.log('Page loaded, event listeners set up');
+        });
+
+        function fitToScreen(imgWidth, imgHeight) {
+            const maxWidth = window.innerWidth - 40;
+            const maxHeight = window.innerHeight * 0.9 - 40;
+            const aspectRatio = imgWidth / imgHeight;
+
+            let newWidth = imgWidth;
+            let newHeight = imgHeight;
+
+            if (newWidth > maxWidth) {
+                newWidth = maxWidth;
+                newHeight = newWidth / aspectRatio;
+            }
+            if (newHeight > maxHeight) {
+                newHeight = maxHeight;
+                newWidth = newHeight * aspectRatio;
+            }
+
+            return { width: Math.floor(newWidth), height: Math.floor(newHeight) };
+        }
+
+        function calculateRegionDifference(imgData1, imgData2, rect) {
+            let totalDiff = 0;
+            let pixelCount = 0;
+            for (let y = rect.y; y < rect.y + rect.height; y++) {
+                for (let x = rect.x; x < rect.x + rect.width; x++) {
+                    if (x < imgData1.width && y < imgData1.height && x < imgData2.width && y < imgData2.height) {
+                        const idx = (y * imgData1.width + x) * 4;
+                        totalDiff += Math.sqrt(
+                            Math.pow(imgData1.data[idx] - imgData2.data[idx], 2) * 0.299 + // Red (weighted for luminance)
+                            Math.pow(imgData1.data[idx + 1] - imgData2.data[idx + 1], 2) * 0.587 + // Green
+                            Math.pow(imgData1.data[idx + 2] - imgData2.data[idx + 2], 2) * 0.114 // Blue
+                        );
+                        pixelCount++;
+                    }
+                }
+            }
+            return pixelCount > 0 ? totalDiff / pixelCount : Infinity;
+        }
+
+        function isPointInLasso(x, y, points) {
+            let inside = false;
+            for (let i = 0, j = points.length - 1; i < points.length; j = i++) {
+                const xi = points[i].x, yi = points[i].y;
+                const xj = points[j].x, yj = points[j].y;
+                const intersect = ((yi > y) !== (yj > y)) &&
+                    (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function setupCanvasEvents() {
+            canvas.addEventListener('mousedown', (e) => {
+                if (!masterImages.length || imagesStack.length < 2) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.floor(e.clientX - rect.left);
+                const y = Math.floor(e.clientY - rect.top);
+
+                if (e.ctrlKey) {
+                    if (drawingLasso) return;
+                    drawingLasso = true;
+                    isPatchLasso = true; // Patching lasso
+                    lassoPoints = [{x, y}];
+                    console.log('Patch lasso started at:', x, y);
+                    status.textContent = 'Drawing invisible patch lasso (Ctrl held)...';
+                } else if (e.altKey) {
+                    if (drawingLasso) return;
+                    drawingLasso = true;
+                    isPatchLasso = false; // Blending lasso
+                    lassoPoints = [{x, y}];
+                    console.log('Blend lasso started at:', x, y);
+                    status.textContent = 'Drawing invisible blend lasso (Alt held)...';
+                } else {
+                    patchRegion(x, y);
+                    status.textContent = 'Patch (5x5) applied at ' + x + ',' + y;
+                    console.log('Patch applied at:', x, y);
+                    displayMasterImage();
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!drawingLasso || !masterImages.length) return;
+
+                const rect = canvas.getBoundingClientRect();
+                const x = Math.floor(e.clientX - rect.left);
+                const y = Math.floor(e.clientY - rect.top);
+                lassoPoints.push({x, y});
+                redrawCanvasWithLasso(); // Still track points, but no visible drawing
+            });
+
+            canvas.addEventListener('mouseup', (e) => {
+                if (!drawingLasso || !masterImages.length) return;
+                drawingLasso = false;
+
+                if (lassoPoints.length < 3) {
+                    console.log('Lasso too small, aborted');
+                    status.textContent = 'Lasso too small';
+                    lassoPoints = [];
+                    clearLassoAndRedraw();
+                    return;
+                }
+
+                if (isPatchLasso) {
+                    applyLassoPatch();
+                } else {
+                    applyLassoBlend();
+                }
+                lassoPoints = []; // Reset lasso points
+                drawingLasso = false; // Ensure drawing state is off
+                clearLassoAndRedraw();
+                console.log(`${isPatchLasso ? 'Patch' : 'Blend'} lasso completed and cleared`);
+            });
+
+            document.addEventListener('keyup', (e) => {
+                if ((e.key === 'Control' || e.key === 'Alt') && drawingLasso) {
+                    drawingLasso = false;
+                    lassoPoints = [];
+                    clearLassoAndRedraw();
+                    console.log(`${e.key === 'Control' ? 'Patch' : 'Blend'} lasso cancelled`);
+                    status.textContent = 'Lasso cancelled';
+                }
+            });
+        }
+
+        function redrawCanvasWithLasso() {
+            ctx.putImageData(masterImages[0], 0, 0);
+            // No visible stroke - both lassos are invisible but still tracked for patching/blending
+        }
+
+        function clearLassoAndRedraw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(masterImages[0], 0, 0); // Use the combined master
+            canvas.style.display = 'none';
+            canvas.offsetHeight;
+            canvas.style.display = 'block';
+            window.requestAnimationFrame(() => {
+                console.log('Forced repaint completed');
+            });
+            console.log('Lasso cleared, combined master image redrawn');
+            status.textContent = `Combined master image displayed (${imagesStack.length} images merged) - Click to patch (5x5), Ctrl+click to patch lasso, Alt+click to blend lasso`;
+        }
+
+        function applyLassoPatch() {
+            const minX = Math.max(0, Math.min(...lassoPoints.map(p => p.x)));
+            const maxX = Math.min(canvas.width, Math.max(...lassoPoints.map(p => p.x)));
+            const minY = Math.max(0, Math.min(...lassoPoints.map(p => p.y)));
+            const maxY = Math.min(canvas.height, Math.max(...lassoPoints.map(p => p.y)));
+
+            const patchRect = {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY
+            };
+
+            if (patchRect.width <= 0 || patchRect.height <= 0) {
+                console.log('Invalid patch lasso region');
+                status.textContent = 'Invalid patch lasso region';
+                return;
+            }
+
+            let minDiff = Infinity;
+            let bestImageData = null;
+            const masterData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+            let allDiffs = [];
+            for (let i = 1; i < imagesStack.length; i++) {
+                const diff = calculateRegionDifference(masterData, imagesStack[i], patchRect);
+                allDiffs.push({ index: i, diff: diff });
+                console.log(`Image ${i} (e.g., image${i}.jpg) difference in patch lasso region: ${diff}`);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestImageData = imagesStack[i];
+                }
+            }
+
+            if (!bestImageData && allDiffs.length > 0) {
+                allDiffs.sort((a, b) => a.diff - b.diff);
+                bestImageData = imagesStack[allDiffs[0].index];
+                console.log(`Fallback: Using image ${allDiffs[0].index} (e.g., image${allDiffs[0].index}.jpg) with min diff ${allDiffs[0].diff}`);
+            }
+
+            if (bestImageData) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(bestImageData, 0, 0);
+
+                const newMasterData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let updatedPixels = 0;
+                for (let y = minY; y < maxY; y++) {
+                    for (let x = minX; x < maxX; x++) {
+                        if (isPointInLasso(x, y, lassoPoints)) {
+                            const idx = (y * canvas.width + x) * 4;
+                            const tempData = tempCtx.getImageData(x, y, 1, 1).data;
+                            newMasterData.data[idx] = tempData[0];
+                            newMasterData.data[idx + 1] = tempData[1];
+                            newMasterData.data[idx + 2] = tempData[2];
+                            newMasterData.data[idx + 3] = tempData[3];
+                            updatedPixels++;
+                        }
+                    }
+                }
+                masterImages[0] = newMasterData; // Update the combined master
+                console.log('Patch lasso applied, region:', patchRect, 'difference:', minDiff, 'pixels updated:', updatedPixels);
+                status.textContent = 'Patch lasso applied';
+            } else {
+                console.log('No match found for patch lasso, no patch applied');
+                status.textContent = 'No better match found for patch lasso';
+            }
+        }
+
+        function applyLassoBlend() {
+            const minX = Math.max(0, Math.min(...lassoPoints.map(p => p.x)));
+            const maxX = Math.min(canvas.width, Math.max(...lassoPoints.map(p => p.x)));
+            const minY = Math.max(0, Math.min(...lassoPoints.map(p => p.y)));
+            const maxY = Math.min(canvas.height, Math.max(...lassoPoints.map(p => p.y)));
+
+            const blendRect = {
+                x: minX,
+                y: minY,
+                width: maxX - minX,
+                height: maxY - minY
+            };
+
+            if (blendRect.width <= 0 || blendRect.height <= 0) {
+                console.log('Invalid blend lasso region');
+                status.textContent = 'Invalid blend lasso region';
+                return;
+            }
+
+            const masterData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            let blendedData = ctx.createImageData(canvas.width, canvas.height);
+            blendedData.data.set(masterData.data); // Start with current master
+
+            // Collect pixel values from all images for blending
+            let pixelValues = {};
+            for (let y = minY; y < maxY; y++) {
+                for (let x = minX; x < maxX; x++) {
+                    if (isPointInLasso(x, y, lassoPoints)) {
+                        const idx = (y * canvas.width + x) * 4;
+                        pixelValues[`${x},${y}`] = {
+                            r: [], g: [], b: [], a: []
+                        };
+                        for (let i = 0; i < imagesStack.length; i++) {
+                            const imgData = i === 0 ? imgBase : imagesStack[i];
+                            if (x < imgData.width && y < imgData.height) {
+                                const dataIdx = (y * imgData.width + x) * 4;
+                                pixelValues[`${x},${y}`].r.push(imgData.data[dataIdx]);
+                                pixelValues[`${x},${y}`].g.push(imgData.data[dataIdx + 1]);
+                                pixelValues[`${x},${y}`].b.push(imgData.data[dataIdx + 2]);
+                                pixelValues[`${x},${y}`].a.push(imgData.data[dataIdx + 3]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Apply feathering/blending by averaging pixel values
+            let updatedPixels = 0;
+            for (let y = minY; y < maxY; y++) {
+                for (let x = minX; x < maxX; x++) {
+                    if (isPointInLasso(x, y, lassoPoints)) {
+                        const idx = (y * canvas.width + x) * 4;
+                        const values = pixelValues[`${x},${y}`];
+                        if (values.r.length > 0) {
+                            blendedData.data[idx] = values.r.reduce((a, b) => a + b, 0) / values.r.length; // Average Red
+                            blendedData.data[idx + 1] = values.g.reduce((a, b) => a + b, 0) / values.g.length; // Average Green
+                            blendedData.data[idx + 2] = values.b.reduce((a, b) => a + b, 0) / values.b.length; // Average Blue
+                            blendedData.data[idx + 3] = values.a.reduce((a, b) => a + b, 0) / values.a.length; // Average Alpha
+                            updatedPixels++;
+                        }
+                    }
+                }
+            }
+
+            if (updatedPixels > 0) {
+                masterImages[0] = blendedData; // Update the combined master with blended data
+                console.log('Blend lasso applied, region:', blendRect, 'pixels updated:', updatedPixels);
+                status.textContent = 'Blend lasso applied (feathered pixels)';
+            } else {
+                console.log('No pixels blended for blend lasso');
+                status.textContent = 'No pixels blended for blend lasso';
+            }
+        }
+
+        function patchRegion(clickX, clickY) {
+            const halfPatch = Math.floor(PATCH_SIZE / 2);
+            const patchX = Math.max(0, Math.min(clickX - halfPatch, masterImages[0].width - PATCH_SIZE));
+            const patchY = Math.max(0, Math.min(clickY - halfPatch, masterImages[0].height - PATCH_SIZE));
+            const patchRect = { x: patchX, y: patchY, width: PATCH_SIZE, height: PATCH_SIZE };
+
+            let minDiff = Infinity;
+            let bestImageData = null;
+            const masterPixel = ctx.getImageData(clickX, clickY, 1, 1);
+
+            let allDiffs = [];
+            for (let i = 1; i < imagesStack.length; i++) {
+                const idx = (clickY * imagesStack[i].width + clickX) * 4;
+                const diff = Math.abs(masterPixel.data[0] - imagesStack[i].data[idx]) +
+                            Math.abs(masterPixel.data[1] - imagesStack[i].data[idx + 1]) +
+                            Math.abs(masterPixel.data[2] - imagesStack[i].data[idx + 2]);
+                allDiffs.push({ index: i, diff: diff });
+                console.log(`Image ${i} (e.g., image${i}.jpg) difference at patch point: ${diff}`);
+                if (diff < minDiff) {
+                    minDiff = diff;
+                    bestImageData = imagesStack[i];
+                }
+            }
+
+            if (!bestImageData && allDiffs.length > 0) {
+                allDiffs.sort((a, b) => a.diff - b.diff);
+                bestImageData = imagesStack[allDiffs[0].index];
+                console.log(`Fallback: Using image ${allDiffs[0].index} (e.g., image${allDiffs[0].index}.jpg) with min diff ${allDiffs[0].diff}`);
+            }
+
+            if (bestImageData) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.putImageData(bestImageData, 0, 0);
+                ctx.drawImage(tempCanvas, patchRect.x, patchRect.y, patchRect.width, patchRect.height,
+                            patchRect.x, patchRect.y, patchRect.width, patchRect.height);
+                masterImages[0] = ctx.getImageData(0, 0, canvas.width, canvas.height); // Update combined master
+            }
+            displayMasterImage(); // Ensure combined master is redrawn after patch
+        }
+
+        function handleImageUpload(e) {
+            const files = e.target.files;
+            if (!files.length) {
+                status.textContent = 'No files selected';
+                console.log('No files selected');
+                composeButton.disabled = true;
+                return;
+            }
+
+            status.textContent = `Loading ${files.length} image(s)...`;
+            console.log(`Attempting to load ${files.length} image(s)`);
+            imagesStack = [];
+            let loaded = 0;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const reader = new FileReader();
+                
+                reader.onload = (event) => {
+                    const img = new Image();
+                    
+                    img.onload = () => {
+                        const tempCanvas = document.createElement('canvas');
+                        if (!imgBase) {
+                            originalWidth = img.width;
+                            originalHeight = img.height;
+                            const scaled = fitToScreen(img.width, img.height);
+                            tempCanvas.width = scaled.width;
+                            tempCanvas.height = scaled.height;
+                            canvas.width = scaled.width;
+                            canvas.height = scaled.height;
+                            console.log('Base dimensions set:', scaled.width, 'x', scaled.height);
+                        } else {
+                            tempCanvas.width = canvas.width;
+                            tempCanvas.height = canvas.height;
+                        }
+
+                        const tempCtx = tempCanvas.getContext('2d');
+                        tempCtx.drawImage(img, 0, 0, tempCanvas.width, tempCanvas.height);
+                        const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+
+                        if (!imgBase) {
+                            imgBase = imageData;
+                            console.log('Base image loaded (e.g., image0.jpg)');
+                        }
+                        imagesStack.push(imageData);
+                        
+                        loaded++;
+                        console.log(`Image ${loaded} of ${files.length} loaded (e.g., image${loaded}.jpg)`);
+                        if (loaded === files.length) {
+                            status.textContent = `${files.length} images loaded - click Compose! to stack`;
+                            composeButton.disabled = false;
+                        }
+                    };
+                    
+                    img.onerror = () => {
+                        console.error(`Failed to load image ${i + 1} (e.g., image${i}.jpg)`);
+                        status.textContent = 'Error: Failed to load an image';
+                    };
+                    
+                    img.src = event.target.result;
+                };
+                
+                reader.onerror = () => {
+                    console.error(`FileReader error for image ${i + 1} (e.g., image${i}.jpg)`);
+                    status.textContent = 'Error: Failed to read file';
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function composeImages() {
+            if (!imgBase || imagesStack.length < 1) {
+                status.textContent = 'No images loaded to compose';
+                console.error('No images available for composition');
+                return;
+            }
+
+            status.textContent = 'Composing images at multiple thresholds...';
+            console.log('Starting composition with', imagesStack.length, 'images');
+
+            masterImages = [];
+            for (let threshold of THRESHOLDS) {
+                let tempMaster = ctx.createImageData(imgBase.width, imgBase.height);
+                tempMaster.data.set(imgBase.data);
+
+                let totalChanges = 0;
+                for (let i = 1; i < imagesStack.length; i++) {
+                    const imageData = imagesStack[i];
+                    let changes = 0;
+
+                    for (let y = 0; y < imageData.height; y++) {
+                        for (let x = 0; x < imageData.width; x++) {
+                            const idx = (y * imageData.width + x) * 4;
+                            const baseIdx = (y * imgBase.width + x) * 4;
+                            
+                            const maxDiff = Math.max(
+                                Math.abs(imgBase.data[baseIdx] - imageData.data[idx]),
+                                Math.abs(imgBase.data[baseIdx + 1] - imageData.data[idx + 1]),
+                                Math.abs(imgBase.data[baseIdx + 2] - imageData.data[idx + 2])
+                            );
+
+                            if (maxDiff > threshold) {
+                                tempMaster.data[idx] = imageData.data[idx];
+                                tempMaster.data[idx + 1] = imageData.data[idx + 1];
+                                tempMaster.data[idx + 2] = imageData.data[idx + 2];
+                                tempMaster.data[idx + 3] = imageData.data[idx + 3];
+                                changes++;
+                            }
+                        }
+                    }
+                    totalChanges += changes;
+                    console.log(`Threshold ${threshold / 255 * 100}% - Image ${i} (e.g., image${i}.jpg): ${changes} pixels changed`);
+                }
+                masterImages.push(tempMaster);
+                console.log(`Composition complete for threshold ${threshold / 255 * 100}%, total pixels changed: ${totalChanges}`);
+            }
+
+            // Verify all images are included in at least one threshold
+            console.log('Verifying image inclusion across thresholds:');
+            for (let i = 1; i < imagesStack.length; i++) {
+                let included = false;
+                for (let threshold of THRESHOLDS) {
+                    let changes = 0;
+                    for (let y = 0; y < imagesStack[i].height; y++) {
+                        for (let x = 0; x < imagesStack[i].width; x++) {
+                            const idx = (y * imagesStack[i].width + x) * 4;
+                            const baseIdx = (y * imgBase.width + x) * 4;
+                            const maxDiff = Math.max(
+                                Math.abs(imgBase.data[baseIdx] - imagesStack[i].data[idx]),
+                                Math.abs(imgBase.data[baseIdx + 1] - imagesStack[i].data[idx + 1]),
+                                Math.abs(imgBase.data[baseIdx + 2] - imagesStack[i].data[idx + 2])
+                            );
+                            if (maxDiff > threshold) changes++;
+                        }
+                    }
+                    if (changes > 0) included = true;
+                }
+                console.log(`Image ${i} (e.g., image${i}.jpg) included: ${included}`);
+            }
+
+            // Combine the master images into a mean average
+            const combinedMaster = ctx.createImageData(imgBase.width, imgBase.height);
+            for (let i = 0; i < combinedMaster.data.length; i += 4) {
+                let rSum = 0, gSum = 0, bSum = 0, aSum = 0;
+                for (let master of masterImages) {
+                    rSum += master.data[i];
+                    gSum += master.data[i + 1];
+                    bSum += master.data[i + 2];
+                    aSum += master.data[i + 3];
+                }
+                combinedMaster.data[i] = rSum / masterImages.length;     // Average Red
+                combinedMaster.data[i + 1] = gSum / masterImages.length; // Average Green
+                combinedMaster.data[i + 2] = bSum / masterImages.length; // Average Blue
+                combinedMaster.data[i + 3] = aSum / masterImages.length; // Average Alpha
+            }
+            masterImages = [combinedMaster]; // Store only the combined master for patching/blending
+
+            displayMasterImage();
+            console.log('Combined master image created using mean averaging of 4%, 8%, and 12% thresholds');
+        }
+
+        function displayMasterImage() {
+            if (!masterImages.length) {
+                status.textContent = 'No master image to display';
+                console.error('No master image available');
+                return;
+            }
+            if (!masterImages[0].data || masterImages[0].data.length === 0) {
+                status.textContent = 'Master image data is empty';
+                console.error('Master image data is invalid');
+                return;
+            }
+
+            console.log('Displaying combined master image, size:', masterImages[0].width, 'x', masterImages[0].height);
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.putImageData(masterImages[0], 0, 0);
+            canvas.style.display = 'none';
+            canvas.offsetHeight;
+            canvas.style.display = 'block';
+            window.requestAnimationFrame(() => {
+                console.log('Forced repaint completed');
+            });
+            status.textContent = `Combined master image displayed (${imagesStack.length} images merged) - Click to patch (5x5), Ctrl+click to patch lasso, Alt+click to blend lasso`;
+            console.log('Combined master image rendered to canvas');
+        }
+
+        function saveImage() {
+            if (!masterImages.length) {
+                status.textContent = 'No image to save';
+                return;
+            }
+            const cleanCanvas = document.createElement('canvas');
+            cleanCanvas.width = canvas.width;
+            cleanCanvas.height = canvas.height;
+            const cleanCtx = cleanCanvas.getContext('2d');
+            cleanCtx.putImageData(masterImages[0], 0, 0);
+            
+            const link = document.createElement('a');
+            link.download = 'combined_master.png';
+            link.href = cleanCanvas.toDataURL('image/png');
+            link.click();
+            status.textContent = 'Combined master image saved (without lasso lines)';
+            console.log('Combined master image saved without lasso lines');
+        }
+    </script>
+</body>
+</html>
