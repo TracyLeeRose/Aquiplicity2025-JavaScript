@@ -3,6 +3,53 @@
 <head>
     <title>Aquiplicity 2025 JavaScript (Patch & Blend)</title>
     <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        #controls {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            flex-wrap: wrap;
+        }
+        #mainContainer {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        #thumbnailStrip {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 5px;
+            border-right: 1px solid #ccc;
+            background: #f0f0f0;
+            width: 165px;
+            flex-shrink: 0;
+        }
+        .thumbnail {
+            width: 150px;
+            height: 112px;
+            object-fit: cover;
+            margin-bottom: 5px;
+            border: 1px solid #999;
+            cursor: pointer;
+        }
+        .thumbnail:hover {
+            border-color: #000;
+        }
+        #workingArea {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: auto;
+        }
         canvas {
             border: 1px solid black;
             margin: 10px;
@@ -14,20 +61,155 @@
             font-family: Arial, sans-serif;
         }
         button {
-            margin: 10px;
+            margin: 5px;
             padding: 5px 10px;
+        }
+        .slider-container {
+            margin: 0 15px;
+            display: flex;
+            align-items: center;
+        }
+        .slider-label {
+            margin-right: 5px;
+            font-family: Arial, sans-serif;
+        }
+        input[type="range"] {
+            width: 100px;
+        }
+        .slider-value {
+            margin-left: 5px;
+            min-width: 30px;
+            font-family: Arial, sans-serif;
+        }
+        .tracy-rose-button {
+            background-color: #0066cc;
+            color: white;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            box-shadow: 0 2px #004d99,
+                       0 3px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            transition: all 0.1s;
+            margin: 0 5px;
+        }
+        .tracy-rose-button:hover {
+            background-color: #0077e6;
+        }
+        .tracy-rose-button:active {
+            box-shadow: 0 1px #004d99;
+            transform: translateY(1px);
+        }
+        .reset-button {
+            background-color: #cc0000;
+            color: white;
+            padding: 4px 8px;
+            border: none;
+            border-radius: 3px;
+            box-shadow: 0 2px #990000,
+                       0 3px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            transition: all 0.1s;
+            margin: 0 5px;
+        }
+        .reset-button:hover {
+            background-color: #e60000;
+        }
+        .reset-button:active {
+            box-shadow: 0 1px #990000;
+            transform: translateY(1px);
         }
     </style>
 </head>
 <body>
-    <input type="file" id="imageInput" multiple accept="image/*">
-    <button id="composeButton" onclick="composeImages()" disabled>Compose!</button>
-    <div id="status">Upload images to begin</div>
-    <canvas id="canvasOutput"></canvas>
-    <button onclick="saveImage()">Save Master Image</button>
+    <div id="controls">
+        <input type="file" id="imageInput" multiple accept="image/*">
+        <button id="composeButton" onclick="composeImages()" disabled>Compose!</button>
+        <button class="reset-button" onclick="resetApplication()">Reset</button>
+        <div class="slider-container">
+            <span class="slider-label">T1:</span>
+            <input type="range" id="threshold1" min="0.01" max="1.0" step="0.01" value="0.10">
+            <span class="slider-value" id="threshold1-value">0.10</span>
+        </div>
+        <div class="slider-container">
+            <span class="slider-label">T2:</span>
+            <input type="range" id="threshold2" min="0.01" max="1.0" step="0.01" value="0.12">
+            <span class="slider-value" id="threshold2-value">0.12</span>
+        </div>
+        <div class="slider-container">
+            <span class="slider-label">T3:</span>
+            <input type="range" id="threshold3" min="0.01" max="1.0" step="0.01" value="0.13">
+            <span class="slider-value" id="threshold3-value">0.13</span>
+        </div>
+        <div id="status">Upload images to begin</div>
+    </div>
+    <div id="mainContainer">
+        <div id="thumbnailStrip"></div>
+        <div id="workingArea">
+            <canvas id="canvasOutput"></canvas>
+            <div>
+                <button onclick="saveImage()">Save Master Image</button>
+                <button class="tracy-rose-button" onclick="setTracyRosePreset()">By Tracy Rose</button>
+            </div>
+        </div>
+    </div>
     
     <script type="text/javascript">
-        const THRESHOLDS = [0.05 * 255, 0.08 * 255, 0.10 * 255]; // Adjusted to 4%, 8%, 12% for subtler differences
+        function getThresholds() {
+            const t1 = parseFloat(document.getElementById('threshold1').value) * 255;
+            const t2 = parseFloat(document.getElementById('threshold2').value) * 255;
+            const t3 = parseFloat(document.getElementById('threshold3').value) * 255;
+            return [t1, t2, t3];
+        }
+
+        function setTracyRosePreset() {
+            const sliders = ['threshold1', 'threshold2', 'threshold3'];
+            sliders.forEach(id => {
+                const slider = document.getElementById(id);
+                const valueDisplay = document.getElementById(`${id}-value`);
+                slider.value = 0.13;
+                valueDisplay.textContent = '0.13';
+            });
+            status.textContent = 'Tracy Rose preset applied (all thresholds set to 0.13)';
+            console.log('Tracy Rose preset applied: all sliders set to 0.13');
+        }
+
+        function resetApplication() {
+            imgBase = null;
+            imagesStack = [];
+            masterImages = [];
+            lassoPoints = [];
+            drawingLasso = false;
+            isPatchLasso = false;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = 0;
+            canvas.height = 0;
+
+            document.getElementById('imageInput').value = '';
+            thumbnailStrip.innerHTML = '';
+            composeButton.disabled = true;
+            status.textContent = 'Upload images to begin';
+
+            const sliderDefaults = {
+                'threshold1': '0.10',
+                'threshold2': '0.12',
+                'threshold3': '0.13'
+            };
+            for (let [id, value] of Object.entries(sliderDefaults)) {
+                const slider = document.getElementById(id);
+                const valueDisplay = document.getElementById(`${id}-value`);
+                slider.value = value;
+                valueDisplay.textContent = value;
+            }
+
+            console.log('Application reset to initial state');
+        }
+
         const PATCH_SIZE = 5;
         let canvas = document.getElementById('canvasOutput');
         let ctx = canvas.getContext('2d');
@@ -35,11 +217,12 @@
         let imagesStack = [];
         let status = document.getElementById('status');
         let composeButton = document.getElementById('composeButton');
+        let thumbnailStrip = document.getElementById('thumbnailStrip');
         let originalWidth, originalHeight;
-        let lassoPoints = []; // Shared for both lassos, differentiated by key
+        let lassoPoints = [];
         let drawingLasso = false;
-        let isPatchLasso = false; // True for Ctrl (patching), false for Alt (blending)
-        let masterImages = []; // Store combined master image
+        let isPatchLasso = false;
+        let masterImages = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             if (!canvas || !ctx) {
@@ -49,11 +232,20 @@
             }
             document.getElementById('imageInput').addEventListener('change', handleImageUpload);
             setupCanvasEvents();
+            
+            ['threshold1', 'threshold2', 'threshold3'].forEach(id => {
+                const slider = document.getElementById(id);
+                const valueDisplay = document.getElementById(`${id}-value`);
+                slider.addEventListener('input', () => {
+                    valueDisplay.textContent = slider.value;
+                });
+            });
+            
             console.log('Page loaded, event listeners set up');
         });
 
         function fitToScreen(imgWidth, imgHeight) {
-            const maxWidth = window.innerWidth - 40;
+            const maxWidth = document.getElementById('workingArea').clientWidth - 40;
             const maxHeight = window.innerHeight * 0.9 - 40;
             const aspectRatio = imgWidth / imgHeight;
 
@@ -80,9 +272,9 @@
                     if (x < imgData1.width && y < imgData1.height && x < imgData2.width && y < imgData2.height) {
                         const idx = (y * imgData1.width + x) * 4;
                         totalDiff += Math.sqrt(
-                            Math.pow(imgData1.data[idx] - imgData2.data[idx], 2) * 0.299 + // Red (weighted for luminance)
-                            Math.pow(imgData1.data[idx + 1] - imgData2.data[idx + 1], 2) * 0.587 + // Green
-                            Math.pow(imgData1.data[idx + 2] - imgData2.data[idx + 2], 2) * 0.114 // Blue
+                            Math.pow(imgData1.data[idx] - imgData2.data[idx], 2) * 0.299 +
+                            Math.pow(imgData1.data[idx + 1] - imgData2.data[idx + 1], 2) * 0.587 +
+                            Math.pow(imgData1.data[idx + 2] - imgData2.data[idx + 2], 2) * 0.114
                         );
                         pixelCount++;
                     }
@@ -114,14 +306,14 @@
                 if (e.ctrlKey) {
                     if (drawingLasso) return;
                     drawingLasso = true;
-                    isPatchLasso = true; // Patching lasso
+                    isPatchLasso = true;
                     lassoPoints = [{x, y}];
                     console.log('Patch lasso started at:', x, y);
                     status.textContent = 'Drawing invisible patch lasso (Ctrl held)...';
                 } else if (e.altKey) {
                     if (drawingLasso) return;
                     drawingLasso = true;
-                    isPatchLasso = false; // Blending lasso
+                    isPatchLasso = false;
                     lassoPoints = [{x, y}];
                     console.log('Blend lasso started at:', x, y);
                     status.textContent = 'Drawing invisible blend lasso (Alt held)...';
@@ -140,7 +332,7 @@
                 const x = Math.floor(e.clientX - rect.left);
                 const y = Math.floor(e.clientY - rect.top);
                 lassoPoints.push({x, y});
-                redrawCanvasWithLasso(); // Still track points, but no visible drawing
+                redrawCanvasWithLasso();
             });
 
             canvas.addEventListener('mouseup', (e) => {
@@ -160,8 +352,8 @@
                 } else {
                     applyLassoBlend();
                 }
-                lassoPoints = []; // Reset lasso points
-                drawingLasso = false; // Ensure drawing state is off
+                lassoPoints = [];
+                drawingLasso = false;
                 clearLassoAndRedraw();
                 console.log(`${isPatchLasso ? 'Patch' : 'Blend'} lasso completed and cleared`);
             });
@@ -179,12 +371,11 @@
 
         function redrawCanvasWithLasso() {
             ctx.putImageData(masterImages[0], 0, 0);
-            // No visible stroke - both lassos are invisible but still tracked for patching/blending
         }
 
         function clearLassoAndRedraw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.putImageData(masterImages[0], 0, 0); // Use the combined master
+            ctx.putImageData(masterImages[0], 0, 0);
             canvas.style.display = 'none';
             canvas.offsetHeight;
             canvas.style.display = 'block';
@@ -222,7 +413,7 @@
             for (let i = 1; i < imagesStack.length; i++) {
                 const diff = calculateRegionDifference(masterData, imagesStack[i], patchRect);
                 allDiffs.push({ index: i, diff: diff });
-                console.log(`Image ${i} (e.g., image${i}.jpg) difference in patch lasso region: ${diff}`);
+                console.log(`Image ${i} (e.g., image${i}.jpg) difference from master image in patch lasso region: ${diff}`);
                 if (diff < minDiff) {
                     minDiff = diff;
                     bestImageData = imagesStack[i];
@@ -257,8 +448,8 @@
                         }
                     }
                 }
-                masterImages[0] = newMasterData; // Update the combined master
-                console.log('Patch lasso applied, region:', patchRect, 'difference:', minDiff, 'pixels updated:', updatedPixels);
+                masterImages[0] = newMasterData;
+                console.log('Patch lasso applied, region:', patchRect, 'difference from master:', minDiff, 'pixels updated:', updatedPixels);
                 status.textContent = 'Patch lasso applied';
             } else {
                 console.log('No match found for patch lasso, no patch applied');
@@ -287,9 +478,8 @@
 
             const masterData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             let blendedData = ctx.createImageData(canvas.width, canvas.height);
-            blendedData.data.set(masterData.data); // Start with current master
+            blendedData.data.set(masterData.data);
 
-            // Collect pixel values from all images for blending
             let pixelValues = {};
             for (let y = minY; y < maxY; y++) {
                 for (let x = minX; x < maxX; x++) {
@@ -312,7 +502,6 @@
                 }
             }
 
-            // Apply feathering/blending by averaging pixel values
             let updatedPixels = 0;
             for (let y = minY; y < maxY; y++) {
                 for (let x = minX; x < maxX; x++) {
@@ -320,10 +509,10 @@
                         const idx = (y * canvas.width + x) * 4;
                         const values = pixelValues[`${x},${y}`];
                         if (values.r.length > 0) {
-                            blendedData.data[idx] = values.r.reduce((a, b) => a + b, 0) / values.r.length; // Average Red
-                            blendedData.data[idx + 1] = values.g.reduce((a, b) => a + b, 0) / values.g.length; // Average Green
-                            blendedData.data[idx + 2] = values.b.reduce((a, b) => a + b, 0) / values.b.length; // Average Blue
-                            blendedData.data[idx + 3] = values.a.reduce((a, b) => a + b, 0) / values.a.length; // Average Alpha
+                            blendedData.data[idx] = values.r.reduce((a, b) => a + b, 0) / values.r.length;
+                            blendedData.data[idx + 1] = values.g.reduce((a, b) => a + b, 0) / values.g.length;
+                            blendedData.data[idx + 2] = values.b.reduce((a, b) => a + b, 0) / values.b.length;
+                            blendedData.data[idx + 3] = values.a.reduce((a, b) => a + b, 0) / values.a.length;
                             updatedPixels++;
                         }
                     }
@@ -331,7 +520,7 @@
             }
 
             if (updatedPixels > 0) {
-                masterImages[0] = blendedData; // Update the combined master with blended data
+                masterImages[0] = blendedData;
                 console.log('Blend lasso applied, region:', blendRect, 'pixels updated:', updatedPixels);
                 status.textContent = 'Blend lasso applied (feathered pixels)';
             } else {
@@ -357,7 +546,7 @@
                             Math.abs(masterPixel.data[1] - imagesStack[i].data[idx + 1]) +
                             Math.abs(masterPixel.data[2] - imagesStack[i].data[idx + 2]);
                 allDiffs.push({ index: i, diff: diff });
-                console.log(`Image ${i} (e.g., image${i}.jpg) difference at patch point: ${diff}`);
+                console.log(`Image ${i} (e.g., image${i}.jpg) difference from master image at patch point: ${diff}`);
                 if (diff < minDiff) {
                     minDiff = diff;
                     bestImageData = imagesStack[i];
@@ -376,11 +565,11 @@
                 tempCanvas.height = canvas.height;
                 const tempCtx = tempCanvas.getContext('2d');
                 tempCtx.putImageData(bestImageData, 0, 0);
-                ctx.drawImage(tempCanvas, patchRect.x, patchRect.y, patchRect.width, patchRect.height,
-                            patchRect.x, patchRect.y, patchRect.width, patchRect.height);
-                masterImages[0] = ctx.getImageData(0, 0, canvas.width, canvas.height); // Update combined master
+                ctx.drawImage(tempCanvas, patchRect.x, patchY, patchRect.width, patchRect.height,
+                            patchRect.x, patchY, patchRect.width, patchRect.height);
+                masterImages[0] = ctx.getImageData(0, 0, canvas.width, canvas.height);
             }
-            displayMasterImage(); // Ensure combined master is redrawn after patch
+            displayMasterImage();
         }
 
         function handleImageUpload(e) {
@@ -389,6 +578,7 @@
                 status.textContent = 'No files selected';
                 console.log('No files selected');
                 composeButton.disabled = true;
+                thumbnailStrip.innerHTML = '';
                 return;
             }
 
@@ -396,8 +586,9 @@
             console.log(`Attempting to load ${files.length} image(s)`);
             imagesStack = [];
             let loaded = 0;
+            let thumbnails = [];
 
-            for (let i = 0; i < files.length; i++) {
+            for (let i = 0; i < Math.min(files.length, 15); i++) {
                 const file = files[i];
                 const reader = new FileReader();
                 
@@ -426,15 +617,35 @@
 
                         if (!imgBase) {
                             imgBase = imageData;
-                            console.log('Base image loaded (e.g., image0.jpg)');
+                            console.log('Base image loaded (e.g., Image0.jpg)');
                         }
                         imagesStack.push(imageData);
                         
+                        const thumbCanvas = document.createElement('canvas');
+                        thumbCanvas.width = 150;
+                        thumbCanvas.height = 112;
+                        const thumbCtx = thumbCanvas.getContext('2d');
+                        thumbCtx.drawImage(img, 0, 0, 150, 112);
+                        const thumbImg = new Image();
+                        thumbImg.src = thumbCanvas.toDataURL('image/png');
+                        thumbImg.className = 'thumbnail';
+                        thumbImg.title = `Image ${loaded + 1}`;
+                        thumbImg.dataset.index = loaded;
+                        thumbnails.push(thumbImg);
+
                         loaded++;
                         console.log(`Image ${loaded} of ${files.length} loaded (e.g., image${loaded}.jpg)`);
                         if (loaded === files.length) {
+                            thumbnailStrip.innerHTML = '';
+                            thumbnails.forEach(thumb => {
+                                thumbnailStrip.appendChild(thumb);
+                            });
                             status.textContent = `${files.length} images loaded - click Compose! to stack`;
                             composeButton.disabled = false;
+                            console.log(`Displayed ${thumbnails.length} thumbnails`);
+                            if (files.length > 15) {
+                                console.log(`Limited to 15 thumbnails, ${files.length - 15} additional images loaded but not shown in strip`);
+                            }
                         }
                     };
                     
@@ -465,6 +676,7 @@
             status.textContent = 'Composing images at multiple thresholds...';
             console.log('Starting composition with', imagesStack.length, 'images');
 
+            const THRESHOLDS = getThresholds();
             masterImages = [];
             for (let threshold of THRESHOLDS) {
                 let tempMaster = ctx.createImageData(imgBase.width, imgBase.height);
@@ -502,7 +714,6 @@
                 console.log(`Composition complete for threshold ${threshold / 255 * 100}%, total pixels changed: ${totalChanges}`);
             }
 
-            // Verify all images are included in at least one threshold
             console.log('Verifying image inclusion across thresholds:');
             for (let i = 1; i < imagesStack.length; i++) {
                 let included = false;
@@ -525,7 +736,6 @@
                 console.log(`Image ${i} (e.g., image${i}.jpg) included: ${included}`);
             }
 
-            // Combine the master images into a mean average
             const combinedMaster = ctx.createImageData(imgBase.width, imgBase.height);
             for (let i = 0; i < combinedMaster.data.length; i += 4) {
                 let rSum = 0, gSum = 0, bSum = 0, aSum = 0;
@@ -535,15 +745,15 @@
                     bSum += master.data[i + 2];
                     aSum += master.data[i + 3];
                 }
-                combinedMaster.data[i] = rSum / masterImages.length;     // Average Red
-                combinedMaster.data[i + 1] = gSum / masterImages.length; // Average Green
-                combinedMaster.data[i + 2] = bSum / masterImages.length; // Average Blue
-                combinedMaster.data[i + 3] = aSum / masterImages.length; // Average Alpha
+                combinedMaster.data[i] = rSum / masterImages.length;
+                combinedMaster.data[i + 1] = gSum / masterImages.length;
+                combinedMaster.data[i + 2] = bSum / masterImages.length;
+                combinedMaster.data[i + 3] = aSum / masterImages.length;
             }
-            masterImages = [combinedMaster]; // Store only the combined master for patching/blending
+            masterImages = [combinedMaster];
 
             displayMasterImage();
-            console.log('Combined master image created using mean averaging of 4%, 8%, and 12% thresholds');
+            console.log('Combined master image created using mean averaging of thresholds:', THRESHOLDS.map(t => (t / 255).toFixed(2)).join(', '));
         }
 
         function displayMasterImage() {
