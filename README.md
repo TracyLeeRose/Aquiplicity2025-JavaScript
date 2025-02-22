@@ -6,7 +6,8 @@ Aquiplicity (multiplicity image stacker)
 This is a JavaScript version of Aquiplicity full GUI and browser ran of course
 Note all testing was done in Chrome browser.
 
-WHAT PROJECT DOES: Program takes images and stacks them, bringing attributes of all images to a master image and combining them. The first image is a baseline called image0.jpg such as an empty picture of a landscape. The other images have an actor like a woman in the same exact landscape image (tripod taken for registration of pixels and exactness) but the woman is in different locations on each image. The program stacks these images.
+WHAT PROJECT DOES: 
+Program takes images and stacks them, bringing attributes of all images to a master image and combining them. The first image is a baseline called image0.jpg such as an empty picture of a landscape. The other images have an actor like a woman in the same exact landscape image (tripod taken for registration of pixels and exactness) but the woman is in different locations on each image. The program stacks these images.
 
 ----- MANUAL ----
 
