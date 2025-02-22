@@ -9,9 +9,10 @@ Note all testing was done in Chrome browser.
 WHAT PROJECT DOES: Program takes images and stacks them, bringing attributes of all images to a master image and combining them. The first image is a baseline called image0.jpg such as an empty picture of a landscape. The other images have an actor like a woman in the same exact landscape image (tripod taken for registration of pixels and exactness) but the woman is in different locations on each image. The program stacks these images.
 
 ----- MANUAL ----
+
 How-to Use Aquiplicity 2025: Your Friendly Guide to Image Magic
 
-Written by Tracy Rose with earliest concept in 2010 for the desktop app, but now this browser-based tool lets you transform a bunch of images into something totally new and exciting—all with just a few clicks and some creative flair. Whether you’re a beginner or a seasoned image tinkerer, this guide will walk you through every step to make the most of Aquiplicity’s unique features. Let’s dive in and start creating!
+Code idea initally written by Tracy Rose with earliest concept in 2010 for the desktop app, but now this browser-based tool lets you transform a bunch of images into something totally new and exciting—all with just a few clicks and some creative flair. Whether you’re a beginner or a seasoned image tinkerer, this guide will walk you through every step to make the most of Aquiplicity’s unique features. Let’s dive in and start creating!
 
 Getting Started
 What You’ll Need
