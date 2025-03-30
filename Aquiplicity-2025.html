@@ -151,7 +151,7 @@
 </head>
 <body>
     <div id="marqueeContainer">
-        <div id="marquee">Click to patch (5x5), Ctrl+drag to patch lasso, Alt+drag to blend lasso</div>
+        <div id="marquee">Click to patch (2x2), Ctrl+drag to patch lasso, Alt+drag to blend lasso</div>
     </div>
     <div id="controls">
         <input type="file" id="imageInput" multiple accept="image/*">
@@ -398,7 +398,7 @@
             console.log('Application reset');
         }
 
-        const PATCH_SIZE = 5;
+        const PATCH_SIZE = 2; // Changed from 5 to 2
         let canvas = document.getElementById('canvasOutput');
         let ctx = canvas.getContext('2d');
         let imageStack = new ImageStack();
@@ -593,9 +593,9 @@
                         const idx = (y * canvas.width + x) * 4;
                         const srcIdx = (y * sourceImage.width + x) * 4;
                         if (updatedPixels === 0) {
-                            console.log('Original pixel:', 
+                            console.log('Original pixel:',
                                 [newMasterData.data[idx], newMasterData.data[idx + 1], newMasterData.data[idx + 2], newMasterData.data[idx + 3]]);
-                            console.log('Source pixel (layer', selectedLayer, '):', 
+                            console.log('Source pixel (layer', selectedLayer, '):',
                                 [sourceImage.data[srcIdx], sourceImage.data[srcIdx + 1], sourceImage.data[srcIdx + 2], sourceImage.data[srcIdx + 3]]);
                         }
                         newMasterData.data[idx] = sourceImage.data[srcIdx];
@@ -670,24 +670,55 @@
         }
 
         function patchRegion(clickX, clickY) {
-            const halfPatch = Math.floor(PATCH_SIZE / 2);
+            const halfPatch = Math.floor(PATCH_SIZE / 2); // Now calculates 1 for PATCH_SIZE = 2
+            // Ensure patch stays within bounds: minimum top-left is (0,0), maximum top-left is (width-PATCH_SIZE, height-PATCH_SIZE)
             const patchX = Math.max(0, Math.min(clickX - halfPatch, canvas.width - PATCH_SIZE));
             const patchY = Math.max(0, Math.min(clickY - halfPatch, canvas.height - PATCH_SIZE));
             const patchRect = { x: patchX, y: patchY, width: PATCH_SIZE, height: PATCH_SIZE };
 
-            const selectedLayer = layerMatrix[clickY * canvas.width + clickX];
+            // Ensure the click coordinates are within the canvas dimensions before accessing layerMatrix
+            const safeClickX = Math.max(0, Math.min(clickX, canvas.width - 1));
+            const safeClickY = Math.max(0, Math.min(clickY, canvas.height - 1));
+
+            if (!layerMatrix || imageStack.images.length === 0) {
+                 console.error("Cannot patch: layerMatrix or images not ready.");
+                 status.textContent = 'Error: Cannot patch yet.';
+                 return;
+            }
+
+            const matrixIndex = safeClickY * canvas.width + safeClickX;
+            if (matrixIndex < 0 || matrixIndex >= layerMatrix.length) {
+                console.error(`Calculated matrix index ${matrixIndex} is out of bounds for layerMatrix size ${layerMatrix.length}. clickX=${clickX}, clickY=${clickY}, safeClickX=${safeClickX}, safeClickY=${safeClickY}, canvas.width=${canvas.width}`);
+                status.textContent = 'Error: Patch coordinates invalid.';
+                return;
+            }
+
+            const selectedLayer = layerMatrix[matrixIndex];
+
+            if (selectedLayer === undefined || selectedLayer >= imageStack.images.length) {
+                console.error(`Invalid selected layer index ${selectedLayer} at coordinates (${safeClickX}, ${safeClickY}). Max index: ${imageStack.images.length - 1}.`);
+                status.textContent = `Error: Invalid layer data at patch location.`;
+                return;
+            }
+
             const sourceImage = imageStack.images[selectedLayer];
 
+            // Use a temporary canvas to avoid reading from and writing to the same canvas context simultaneously
             const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvas.width;
+            tempCanvas.width = canvas.width; // Use canvas dimensions which match imageStack dimensions
             tempCanvas.height = canvas.height;
             const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.putImageData(sourceImage, 0, 0);
+            tempCtx.putImageData(sourceImage, 0, 0); // Draw the *entire* source layer onto the temp canvas
+
+            // Draw the specific patch area from the temp canvas (containing the source layer) onto the main canvas
             ctx.drawImage(tempCanvas, patchX, patchY, PATCH_SIZE, PATCH_SIZE, patchX, patchY, PATCH_SIZE, PATCH_SIZE);
+
+            // Update the master image data with the patched content
             masterImages[0] = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            console.log('Patch applied at:', clickX, clickY, 'layer:', selectedLayer);
+            console.log(`Patch applied from layer ${selectedLayer} at (${clickX}, ${clickY}) -> region (${patchX}, ${patchY}) size ${PATCH_SIZE}x${PATCH_SIZE}`);
             status.textContent = 'Patch from layer ' + selectedLayer;
         }
+
 
         async function handleImageUpload(e) {
             const files = e.target.files;
@@ -755,7 +786,7 @@
             try {
                 const { imageData, layerMatrix: lm } = await imageStack.compose(thresholds);
                 masterImages = [imageData];
-                layerMatrix = lm;
+                layerMatrix = lm; // Store the layer matrix
                 displayMasterImage();
                 status.textContent = 'Composed';
                 console.log('Composition complete, thresholds:', thresholds.map(t => (t / 255).toFixed(2)).join(', '));
@@ -774,7 +805,7 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.putImageData(masterImages[0], 0, 0);
             window.requestAnimationFrame(() => console.log('Repaint completed'));
-            status.textContent = '';
+            status.textContent = ''; // Clear status after successful display
             console.log('Image rendered');
         }
 
