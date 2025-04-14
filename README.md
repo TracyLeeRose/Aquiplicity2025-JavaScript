@@ -1,129 +1,169 @@
-# Aquiplicity2025
-Aquiplicity 2025 JavaScript
+markdown
+# Aquiplicity 2025
 
-Aquiplicity (multiplicity image stacker)
+**Aquiplicity 2025** is a sophisticated web-based image composition tool designed for creating composite images from multiple layers using a threshold-based pixel selection algorithm. Built with HTML5, CSS, and JavaScript, it leverages the HTML5 Canvas API to enable real-time image manipulation directly in the browser. The tool supports interactive editing features such as patching, blending, and gradient overlays, making it ideal for photographers, digital artists, and developers interested in image processing.
 
-This is a JavaScript version of Aquiplicity full GUI and browser ran of course
-Note all testing was done in Chrome browser.
+This repository contains the complete source code for Aquiplicity 2025 (Single Threshold - Original Resolution), a standalone application that processes images at their native resolution for maximum fidelity.
 
-WHAT PROJECT DOES: 
-Program takes images and stacks them, bringing attributes of all images to a master image and combining them. The first image is a baseline called image0.jpg such as an empty picture of a landscape. The other images have an actor like a woman in the same exact landscape image (tripod taken for registration of pixels and exactness) but the woman is in different locations on each image. The program stacks these images.
+---
 
------ MANUAL ----
+## Features
 
-How-to Use Aquiplicity 2025: Your Friendly Guide to Image Magic
+- **Threshold-Based Composition**: Combines multiple images by selecting pixels based on color differences, controlled by a user-defined threshold (1% to 100%).
+- **Color Distancing**: Uses Euclidean distance in RGB space to quantify pixel differences, ensuring precise layer selection.
+- **Interactive Editing**:
+  - **Patch Click/Lasso**: Replace small regions or user-defined areas with pixels from another layer (Ctrl + click/drag).
+  - **Blend Lasso**: Smooth regions by averaging neighboring pixels (Alt + click/drag).
+  - **Gradient Lasso**: Apply semi-transparent color gradients for creative effects (Shift + click/drag).
+- **Dynamic Layer Management**: Add up to 15 images and remove them at runtime with synchronized UI updates.
+- **Undo System**: Supports up to 15 undo steps for edits like patching, blending, and gradients.
+- **Image Saving**: Export composites as PNG files at original resolution.
+- **Tracy Rose Preset**: Applies an optimized threshold (~13%) for balanced blending.
+- **Responsive UI**: Adapts canvas size to screen constraints while maintaining pixel accuracy.
+- **Status Feedback**: Real-time updates on processing, errors, and actions via a status bar.
 
-Code idea initally written by Tracy Rose with earliest concept in 2010 for the desktop app, but now this browser-based tool lets you transform a bunch of images into something totally new and exciting—all with just a few clicks and some creative flair. Whether you’re a beginner or a seasoned image tinkerer, this guide will walk you through every step to make the most of Aquiplicity’s unique features. Let’s dive in and start creating!
+---
 
-Getting Started
-What You’ll Need
-•	A modern web browser (Chrome, Firefox, Edge, etc.).
-•	A few images (JPEGs, PNGs—anything your browser can handle).
-•	A sense of adventure!
+## Demo
 
-Opening Aquiplicity
-1.	Load the Program: Open the Aquiplicity HTML file in your browser. You’ll see a clean interface with a control panel at the top, a thumbnail strip on the left, and a big working area with a canvas on the right.
-2.	Check the Layout: 
-o	Top Panel: Buttons and sliders for uploading images and tweaking settings.
-o	Left Strip: Where your image thumbnails will appear.
-o	Right Canvas: Your creative playground where the magic happens.
-o	Status Bar: A little helper that tells you what’s going on.
-Tip: If the page doesn’t load right, refresh it—sometimes browsers need a nudge!
+To try Aquiplicity 2025, open `index.html` in a modern web browser (see [Installation](#installation)). Upload multiple images, adjust the threshold, and explore the editing tools to create unique composites.
 
-Step 1: Upload Your Images
-Let’s Get Those Pictures In!
-1.	Find the Upload Button: At the top-left of the control panel, click the "Choose Files" button next to "Upload images to begin" (it’s an <input> field, but it looks like a button).
-2.	Pick Your Images: 
-o	Select multiple images from your computer (hold Ctrl or CMD to pick more than one).
-o	You can upload as many as you like, but only the first 15 will show as thumbnails.
-3.	Watch Them Load: The status bar will say "Loading X image(s)…" (X is how many you picked). You’ll see thumbnails pop up in the left strip, each 150x112 pixels, labeled "Image 1," "Image 2," etc.
-What’s Happening?
-The first image you upload sets the size for your canvas (scaled to fit your screen), and all others adjust to match. They’re stored as pixel data, ready for action.
-Tip: Start with 2-5 images to keep things simple—think of them as ingredients for your visual recipe!
+---
 
-Step 2: Compose Your Master Image
-Mix It Up with Thresholds
-1.	Enable the Compose Button: Once your images load, the "Compose!" button (next to the upload field) lights up—click it!
-2.	Tweak the Sliders (Optional):
-o	You’ll see three sliders labeled T1, T2, and T3, set to 0.10, 0.12, and 0.13 by default.
-o	Slide them between 0.01 and 1.0 to control how much each image blends into the first one (lower = less change, higher = more mixing).
-o	The numbers next to each slider update as you move them—fun to watch!
-3.	See the Magic: 
-o	The status changes to "Composing images at multiple thresholds…".
-o	Aquiplicity compares every pixel across your many images, picks the ones that differ enough (based on your thresholds), and blends them into a single master image.
-o	After a moment, your canvas displays the result!
-What’s Happening?
-The software creates three versions of your composite (one for each threshold), then averages them into one smooth image. It’s like baking a cake with layers of flavor from every picture.
-Tip: Try the "By Mr. Tracy Rose" button (bottom-right) to set all sliders to 0.13—a preset that gives an auto preset balanced mix!
+## Installation
 
-Step 3: Edit with Patches and Lassos
-Make It Your Own
-Now that you’ve got a master image, let’s refine it with some cool tools: patching and lassoing.
-Option 1: Quick Patch (Click)
-1.	Pick a Spot: Click anywhere on the canvas.
-2.	Patch It Up: A 5x5 pixel square around your click gets replaced with a chunk from one of your other images—the one that’s least like the spot you clicked.
-3.	Check the Status: It’ll say something like "Patch (5x5) applied at X,Y" (X and Y are the coordinates).
-What’s Happening?
-Aquiplicity finds the image that’s most different at that exact pixel and swaps in a little 5x5 piece. It’s like patching a quilt with a surprise fabric!
-Tip: Click around to swap in bits and pieces— which is great for fixing small flaws or adding quirky details.
-Option 2: Patch with Invisible Lasso (Ctrl+Click)
-1.	Start Drawing: Hold Ctrl (or CMD on Mac) and click on the canvas to begin a lasso.
-2.	Trace Your Shape: Move your mouse to draw an outline (no visible line yet—just imagine it!). Release Ctrl when you’re done (or connect back to the start).
-3.	Apply the Patch: If your lasso has at least 3 points, Aquiplicity picks the image that’s most different in that whole region and replaces it entirely within your shape.
-What’s Happening?
-It calculates the average color difference across the lassoed area and grabs a matching chunk from another image. Think of it as transplanting a big patch of “skin” from one picture to another.
-Tip: Draw a big lasso over something like a sky or face to swap it out—perfect for bold changes!
-Option 3: Blend Lasso (Alt+Click)
-1.	Start Blending: Hold Alt and click to start your lasso.
-2.	Draw Away: Move the mouse to outline an area, then release Alt to finish.
-3.	Blend It In: The region inside your lasso gets averaged across all your images, creating a soft, dreamy mix.
-What’s Happening?
-Every pixel in the lasso becomes a blend of the same spot from every image—like mixing paint colors into a new shade.
-Tip: Use this for smooth transitions, like blending a face into a surreal combo of all your portraits.
-Note: If your lasso is too small (less than 3 points) or you let go of Ctrl/Alt early, it cancels—no harm done! The status will let you know.
+Aquiplicity 2025 is a client-side application requiring no server setup. Follow these steps to run it locally:
 
-Step 4: Save Your Creation
-Keep Your Masterpiece
-1.	Finish Up: Happy with your image? Click "Save Master Image" (below the canvas).
-2.	Download It: A file named "combined_master.png" downloads to your computer—no lasso lines or temporary stuff, just your polished result.
-3.	Check the Status: It’ll say "Combined master image saved (without lasso lines)".
-What’s Happening?
-Aquiplicity creates a clean copy of your canvas and turns it into a PNG file. It’s ready to share or print!
-Tip: Save often if you’re experimenting—each save captures your latest version.
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/your-username/aquiplicity-2025.git
+   cd aquiplicity-2025
+Serve the Application:
+Option 1: Local File Access:
+Open index.html directly in a modern browser (e.g., Chrome, Firefox, Edge). Note: Some browsers may restrict file input due to security policies when opened via file://.
+Option 2: Local Web Server (recommended):
+Use a simple HTTP server to avoid CORS issues:
+bash
+python3 -m http.server 8000
+Then navigate to http://localhost:8000 in your browser.
+Dependencies:
+No external libraries are required. The application uses vanilla JavaScript and standard HTML5/CSS3.
+Ensure your browser supports the HTML5 Canvas API and modern JavaScript (ES6+).
+Usage
+Launch the Application:
+Open index.html in a browser. The interface includes:
+A control panel (top) with upload, compose, undo, reset, and threshold controls.
+A thumbnail strip (left) showing uploaded images.
+A canvas (center) displaying the composite image.
+A status bar (bottom) for feedback.
+Upload Images:
+Click "Choose Files" to select multiple images (JPEG, PNG, etc., up to 15).
+Images load automatically, with thumbnails appearing in the left strip.
+If two or more images are uploaded, composition starts immediately.
+Adjust Threshold:
+Use the "Threshold (% Diff)" slider (1% to 100%, default 15%) to control pixel selection.
+Lower values favor the base image; higher values mix more layers.
+Click "Compose!" to recompose with the new threshold.
+Edit the Composite:
+Patch Click: Click on the canvas to swap a 2x2 pixel region with another layer’s pixels.
+Patch Lasso: Hold Ctrl, click, and drag to define a region, then release to patch from another layer.
+Blend Lasso: Hold Alt, click, and drag to smooth a region.
+Gradient Lasso: Hold Shift, click, and drag to apply a gradient overlay (25% opacity).
+Release modifier keys after the mouse to cancel actions.
+Remove Images:
+Hover over a thumbnail and click the red "X" to remove it.
+Remaining thumbnails update automatically; recompose if needed.
+Undo Edits:
+Click "Undo" or press Ctrl+Z to revert the last edit (up to 15 steps).
+Undo is disabled during composition or after image removal.
+Save Your Work:
+Click "Save Master Image" to download the composite as Aquiplicity_Master_OrigRes.png.
+Reset:
+Click "Reset" to clear all images, edits, and settings, returning to the initial state.
+Tracy Rose Preset:
+Click "By Tracy Rose" to set the threshold to ~13%, then "Compose!" to apply.
+Technical Details
+Architecture
+Frontend: Single HTML file (index.html) with embedded CSS and JavaScript.
+Core Logic: The ImageStack class manages image data, composition, and color distancing.
+Canvas Rendering: Uses a 2D canvas context with willReadFrequently: true for optimized pixel access.
+Event Handling: Mouse and keyboard events drive interactive editing, with modifier keys (Ctrl, Alt, Shift) for lasso modes.
+Composition Algorithm
+Input: Multiple ImageData objects (RGBA, same dimensions).
+Process:
+Smooth each layer using a 4-neighbor averaging filter (6 iterations) to reduce noise.
+For each pixel, compute Euclidean RGB distances between the smoothed base layer and other layers.
+Select the first layer (highest index) where distance exceeds the threshold (scaled to 0–255), or default to the base layer.
+Copy the original pixel from the selected layer to the output.
+Store the layer index in a layerMatrix for editing.
+Output: Composite ImageData and layerMatrix (Uint8Array).
+Color Distancing
+Metric: Euclidean distance in RGB space:
+D = \sqrt{(r_1 - r_2)^2 + (g_1 - g_2)^2 + (b_1 - b_2)^2}
+Role: Determines pixel selection by comparing smoothed layers against the threshold.
+Editing Features
+Patch Click: Copies a 2x2 region from the layer indicated by layerMatrix.
+Patch Lasso: Uses ray-casting to identify pixels within a user-drawn polygon, replacing them with pixels from the starting point’s layer.
+Blend Lasso: Averages pixels within a 5x5 window (radius 2) inside the lasso.
+Gradient Lasso: Samples colors at lasso edges, interpolates linearly, and blends at 25% opacity.
+Performance
+Complexity:
+Composition: 
+O(W \times H \times L \times I)
+, where 
+W \times H
+ is resolution, ( L ) is layers, ( I ) is smoothing iterations.
+Lasso operations: 
+O((maxX - minX) \times (maxY - minY) \times P)
+, where ( P ) is lasso points.
+Memory: Each layer uses 
+W \times H \times 4
+ bytes; undo history adds up to 15x this per state.
+Optimizations: Asynchronous updates, bounding box checks, early termination in distance calculations.
+File Structure
+aquiplicity-2025/
+├── index.html        # Main application (HTML, CSS, JavaScript)
+└── README.md         # This file
+index.html: Contains the entire application, including:
+HTML: UI structure (canvas, controls, thumbnails).
+CSS: Styles for responsive layout, buttons, and lasso visualizations.
+JavaScript: Core logic (ImageStack), event handlers, and rendering.
+Building and Contributing
+Aquiplicity 2025 is a standalone project with no build step. To contribute:
+Fork the Repository:
+bash
+git clone https://github.com/your-username/aquiplicity-2025.git
+cd aquiplicity-2025
+Make Changes:
+Edit index.html for HTML/CSS/JavaScript modifications.
+Test locally using a web server (see Installation (#installation)).
+Submit a Pull Request:
+Push changes to your fork.
+Open a PR with a clear description of the feature, bug fix, or improvement.
+Contribution Ideas
+Add support for CIELAB/HSV color spaces for perceptually uniform distancing.
+Implement adaptive thresholding or per-region controls.
+Optimize performance with WebGL or Web Workers.
+Enhance gradient lasso with user-defined opacity or non-linear interpolation.
+Extend undo to persist across image removals.
+Limitations
+Color Space: RGB-based distancing is not perceptually uniform, potentially affecting blend quality.
+Performance: Large images (>4000x4000) or many layers may slow down in browsers.
+Threshold: Single global threshold limits spatial adaptability.
+Undo: Cleared after image removal, limiting reversibility.
+Browser Dependency: Relies on Canvas API; performance varies by browser.
+License
+This project is licensed under the MIT License. See the LICENSE file for details.
+Acknowledgments
+Inspired by advanced image compositing techniques in professional software.
+Special thanks to the "Tracy Rose" preset, named for its creator’s contribution to optimal threshold settings.
+Built with vanilla JavaScript to demonstrate the power of browser-based image processing.
+Contact
+For questions, bug reports, or feature requests, open an issue on GitHub or contact the maintainer at [your-email@example.com (mailto:your-email@example.com)].
+Happy compositing with Aquiplicity 2025! 🎨
 
-Step 5: Start Over (Optional)
-Fresh Canvas, Fresh Ideas
-1.	Hit Reset: Click the red "Reset" button at the top.
-2.	Back to Basics: Everything clears—canvas, thumbnails, sliders (back to 0.10, 0.12, 0.13)—and the status says "Upload images to begin".
-3.	Start Again: Upload new images and dive back in!
-What’s Happening?
-The slate’s wiped clean, ready for your next project. It’s like hitting the restart button on a video game.
-Tip: Reset if you want to try a totally different set of images or if things get too wild!
-
-Extra Tips and Tricks
-•	Experiment with Thresholds: Low values (e.g., 0.05) keep more of your first image; high values (e.g., 0.50) mix in more from the others.
-•	Use the Console: If you’re techy, open your browser’s developer tools (F12) and watch the console logs—they tell you exactly what’s happening (e.g., "Patch applied at: X,Y").
-•	Combine Tools: Patch a spot, then blend over it with a lasso for a layered effect.
-•	Image Choices: Try photos with strong contrasts (e.g., a bright beach and a dark forest) for dramatic results.
-
-Troubleshooting
-•	Compose Button Won’t Click? Make sure you’ve uploaded at least one image.
-•	Canvas Looks Blank? Refresh the page—it might need a repaint nudge.
-•	Lasso Not Working? Hold Ctrl or Alt the whole time you’re drawing, and make a shape with at least 3 points.
-•	Images Won’t Load? Check they’re valid formats (JPEG, PNG) and not corrupted.
-
-Why Aquiplicity Rocks
-Aquiplicity isn’t just another photo editor—it’s a playground where your images become something new. With its threshold mixing, patch swaps, and blend-lassos, you can turn a family photo, a sunset, and a doodle into a wild, one-of-a-kind creation. It’s all in your browser, super-fast, and totally yours to play with.
-Have Fun!
-
-This manual provides a friendly, detailed walkthrough of Aquiplicity 2025’s features, tailored for users of all levels. Let me know if you’d like to tweak the tone or add more sections!
-
-----
-
-
-
-WHERE USERS GET HELP WITH THIS IDEA: 
-Email me at aquiline.photos@gmail.com for any comments or questions. It may take a while for a reply. Be patient.
-
-MAINTAINED BY
-Enjoy ! Mr. Tracy Rose
+**Notes**:
+- Replace `your-username` and `your-email@example.com` with your actual GitHub username and contact email.
+- Add a `LICENSE` file to the repository if you choose to include one (e.g., MIT License).
+- The README assumes the repository will be hosted on GitHub. Adjust URLs if using another platform.
+- The structure follows GitHub conventions, balancing user-friendliness with technical depth for developers.
