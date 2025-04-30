@@ -1,4 +1,4 @@
-Aquiplicity 2025 - JavaScript Image Compositing Tool
+    Aquiplicity 2025 - JavaScript Image Stacking and Compositing Tool for clone images
 
 Aquiplicity 2025 is a browser-based image compositing tool built with HTML5, CSS, and JavaScript. It enables users to upload multiple images, composite them using a single-threshold algorithm, and interactively refine the output using lasso-based and brush-based editing tools. The tool supports advanced features like undo, dynamic brush sizing, and gradient overlays, making it suitable for creative image manipulation tasks.
 Table of Contents
