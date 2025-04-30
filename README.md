@@ -82,7 +82,7 @@ Steps
 Clone the Repository:
 bash
 
-git clone https://github.com/your-username/aquiplicity-2025.git
+git clone https://github.com/TracyLeeRose/aquiplicity-2025.git
 cd aquiplicity-2025
 
 Serve the Application:
