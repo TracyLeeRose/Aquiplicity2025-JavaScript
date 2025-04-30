@@ -1,130 +1,334 @@
-# Aquiplicity 2025
+Aquiplicity 2025 - JavaScript Image Compositing Tool by Tracy Rose
 
-**Aquiplicity 2025** is a sophisticated web-based image composition tool designed for creating composite images from multiple layers using a threshold-based pixel selection algorithm. Built with HTML5, CSS, and JavaScript, it leverages the HTML5 Canvas API to enable real-time image manipulation directly in the browser. The tool supports interactive editing features such as patching, blending, and gradient overlays, making it ideal for photographers, digital artists, and developers interested in image processing.
+Aquiplicity 2025 is a browser-based image compositing tool built with HTML5, CSS, and JavaScript. It enables users to upload multiple images, composite them using a single-threshold algorithm, and interactively refine the output using lasso-based and brush-based editing tools. The tool supports advanced features like undo, dynamic brush sizing, and gradient overlays, making it suitable for creative image manipulation tasks.
 
-This repository contains the complete source code for Aquiplicity 2025 (Single Threshold - Original Resolution), a standalone application that processes images at their native resolution for maximum fidelity.
+Table of Contents
+Features 
+Demo 
+Installation 
+Usage 
+How It Works 
+Technical Details 
+File Structure 
+Contributing 
+Known Issues 
+Future Enhancements 
+License 
+Acknowledgements 
 
----
+Features
+Image Upload and Management:
+Upload multiple images (up to 15) via a file input.
 
-## Features
+Display thumbnails in a scrollable sidebar with metadata (layer index, filename, dimensions).
 
-- **Threshold-Based Composition**: Combines multiple images by selecting pixels based on color differences, controlled by a user-defined threshold (1% to 100%).
-- **Color Distancing**: Uses Euclidean distance in RGB space to quantify pixel differences, ensuring precise layer selection.
-- **Interactive Editing**:
-  - **Patch Click/Lasso**: Replace small regions or user-defined areas with pixels from another layer (Ctrl + click/drag).
-  - **Blend Lasso**: Smooth regions by averaging neighboring pixels (Alt + click/drag).
-  - **Gradient Lasso**: Apply semi-transparent color gradients for creative effects (Shift + click/drag).
-- **Dynamic Layer Management**: Add up to 15 images and remove them at runtime with synchronized UI updates.
-- **Undo System**: Supports up to 15 undo steps for edits like patching, blending, and gradients.
-- **Image Saving**: Export composites as PNG files at original resolution.
-- **Tracy Rose Preset**: Applies an optimized threshold (~13%) for balanced blending.
-- **Responsive UI**: Adapts canvas size to screen constraints while maintaining pixel accuracy.
-- **Status Feedback**: Real-time updates on processing, errors, and actions via a status bar.
+Remove individual images with a clickable "X" button on thumbnails.
 
----
+Image Compositing:
+Automatic compositing of multiple images using a single-threshold algorithm based on color distance.
 
-## Demo
+Adjustable threshold slider (0.01% to 100% difference) for fine-tuning composition sensitivity.
 
-To try Aquiplicity 2025, open `index.html` in a modern web browser (see [Installation](#installation)). Upload multiple images, adjust the threshold, and explore the editing tools to create unique composites.
+"Tracy Rose" preset for quick threshold configuration (~13%).
 
----
+Interactive Editing:
+Patch Lasso (Ctrl+Drag): Select a region to replace with pixels from the layer at the starting point.
 
-## Installation
+Blend Lasso (Alt+Drag): Apply a feathering effect within a selected region using a 2-pixel radius.
 
-Aquiplicity 2025 is a client-side application requiring no server setup. Follow these steps to run it locally:
+Gradient Lasso (Shift+Drag): Overlay a gradient based on sampled colors within the selected region (25% opacity).
 
-1. **Clone the Repository**:
-   ```bash
-   git clone https://github.com/your-username/aquiplicity-2025.git
-   cd aquiplicity-2025
+Patch Brush Click: Click to apply a circular patch from the layer at the click point, with adjustable brush size (4px to 200px).
 
-----------------------------------------------------------------------
----=============   NOTES ABOUT HOW PIXELS ARE PATCHED =============---
-----------------------------------------------------------------------
+Undo and Reset:
+Undo up to 15 actions (e.g., lasso applications, brush clicks).
 
-Aquiplicity code implements an image composition tool with a lasso-based patching system, replacing the original 4x4 pixel patching scheme that caused grid-like artifacts at certain angles. 
+Reset the application to clear all images, canvas, and settings.
 
-Let's analyze the current lasso patching scheme based on the provided code, focusing on the patchRegion and applyLassoPatch functions, which handle the patching operations.
-Current Lasso Patching Scheme
+Canvas and Output:
+Responsive canvas that fits images to the screen while preserving aspect ratio.
 
-The application now uses an area-based lasso patching system with the following characteristics:
-Patch Click (No Modifier Key, Simple Click):
+Save the composed image as a PNG file with a default filename (Aquiplicity_Master_BrushClick.png).
 
-Function: patchRegion(clickX, clickY)
+User Interface:
+Marquee with instructions for quick reference.
 
-Behavior: When the user clicks on the canvas without holding any modifier keys (Ctrl, Alt, or Shift), a small square patch is applied centered at the click location.
-Patch Size: Defined by PATCH_CLICK_SIZE = 4 pixels, creating a 4x4 pixel square region (16 pixels total).
-Source Layer Selection: The layer to patch from is determined by the layerMatrix value at the exact pixel clicked (clickX, clickY). 
-The layerMatrix stores indices of the source images used in the composition.
+Status bar for real-time feedback (e.g., processing progress, errors).
 
-Operation:
-The function calculates the top-left corner of the patch (startX, startY) by offsetting clickX and clickY by half the patch size (halfPatch = Math.floor(PATCH_CLICK_SIZE / 2) = 2).
-It ensures the patch stays within the image bounds using Math.max and Math.min.
-For each pixel in the 4x4 region, it copies the RGB and alpha values from the selected source image's ImageData to the masterImageData at the corresponding pixel.
-The number of pixels patched is tracked and reported in the status (typically 16 pixels unless the click is near the image edge).
+Responsive layout with a thumbnail strip, controls, and working area.
 
-Example Status Message: Patched 16 pixels in 4x4 region from layer X at (clickX, clickY).
+Smooth animations and hover effects for buttons and thumbnails.
 
-Purpose: This provides a precise, small-scale patching mechanism for quick touch-ups without requiring a lasso selection.
-Patch Lasso (Ctrl + Drag):
-Function: applyLassoPatch()
+Keyboard Shortcuts:
+Ctrl+Z or Cmd+Z for undo.
 
-Behavior: When the user holds Ctrl and drags to draw a lasso (closed polygon), the area enclosed by the lasso is patched with pixels from a single source layer.
+Demo
+To see Aquiplicity 2025 in action:
+Clone the repository.
 
-Area Selection:
-The lasso is defined by an array of points (lassoPoints) collected during the drag operation.
-The isPointInLasso(x, y, points) function uses the ray-casting algorithm to determine if a pixel's center (x + 0.5, y + 0.5) lies inside the lasso polygon.
+Open index.html in a modern web browser (e.g., Chrome, Firefox).
 
-Source Layer Selection:  ***************
-The source layer is determined by the layerMatrix value at the starting point of the lasso (lassoPoints[0].x, lassoPoints[0].y).
-This ensures the entire enclosed area is patched from the same layer as the initial click, providing consistent patching within the selected region.
+Upload multiple images and experiment with the compositing and editing tools.
 
-Operation:
-The function computes the bounding box of the lasso (minX, maxX, minY, maxY) to optimize processing by only checking pixels within this rectangle.
-For each pixel in the bounding box, it checks if the pixel's center is inside the lasso using isPointInLasso.
-If inside, it copies the RGB and alpha values from the selected source image's ImageData to the masterImageData at the corresponding pixel.
-The number of pixels patched is tracked and reported.
+A live demo may be hosted in the future (see Future Enhancements (#future-enhancements)).
+Installation
+No external dependencies or server setup are required since Aquiplicity 2025 is a client-side application.
+Prerequisites
+A modern web browser (Chrome, Firefox, Edge, or Safari).
 
-After patching, the lasso is cleared, and the canvas is redrawn (clearLassoAndRedraw).
-Example Status Message: Applied patch lasso from layer X (Y pixels).
+Basic knowledge of HTML and JavaScript for development or customization.
 
-Purpose: This allows for larger, irregularly shaped regions to be patched from a single source layer, avoiding the grid artifacts of the 4x4 scheme by using a freeform selection.
-Key Differences from the 4x4 Pixel Patching Scheme...The original 4x4 pixel patching scheme applied patches in a grid-like pattern (e.g., dividing the image into 4x4 pixel blocks or applying patches at regular intervals), which caused visible grid artifacts at certain angles due to the regular, tiled nature of the patches. 
+Steps
+Clone the Repository:
+bash
 
-The new lasso-based scheme addresses this by using Freeform Selection:
-The lasso allows users to define arbitrary, irregular shapes for patching, eliminating the regular grid pattern and reducing visible seams.
+git clone https://github.com/your-username/aquiplicity-2025.git
+cd aquiplicity-2025
 
-Flexible Patch Size: 
-The patch click uses a small 4x4 pixel region for precision but is applied only where clicked, not across a grid.
-The patch lasso can enclose areas of any size and shape, limited only by the user's drawing and the image bounds.
-Single Layer Consistency: The patch lasso uses the layer at the lasso's starting point for the entire region, ensuring uniformity within the patched area and avoiding the patchwork effect of grid-based patching.
+Serve the Application:
+Option 1: Open index.html directly in a browser (e.g., file://path/to/aquiplicity-2025/index.html).
 
-User Control: The lasso requires explicit user interaction (Ctrl + Drag), giving precise control over where and how patches are applied, unlike an automated grid-based approach.
-Additional Notes on the Lasso Patching Scheme
+Option 2: Use a local server to avoid CORS issues with file inputs:
+bash
 
-Performance Optimization:
-The applyLassoPatch function uses a bounding box to limit the pixels checked with isPointInLasso, improving performance for large images or complex lassos.
-The isPointInLasso function is efficient for determining point inclusion (NOTE it may become a bottleneck for very large lassos or high-resolution images due to repeated calls)
+npx http-server
 
-Error Handling:
-The code includes checks for invalid conditions (e.g., insufficient lasso points, invalid layer indices, or out-of-bounds coordinates) and provides appropriate status messages.
-For example, if the lasso has fewer than 3 points, it is cancelled with a message: Lasso too small, action cancelled..
+Then navigate to http://localhost:8080.
 
-Visual Feedback:
-During lasso drawing, redrawCanvasWithLasso renders a semi-transparent green fill (rgba(0, 255, 0, 0.3)) and a dark green stroke (rgba(0, 100, 0, 0.7)) to show the patch lasso's shape, enhancing user experience.
-The lasso is cleared after application, ensuring a clean canvas.
+Verify:
+Ensure the UI loads with a marquee, controls, thumbnail strip, and canvas.
 
-Undo Support:
-Both patch click and patch lasso actions save the masterImageData state to the historyStack before applying changes, allowing users to undo with Ctrl+Z or the Undo button.
-**************** >> The history is limited to MAX_HISTORY = 15 states to manage memory.
+Upload images to confirm functionality.
 
-Potential Artifacts and Considerations.  While the lasso patching scheme eliminates the grid artifacts of the 4x4 scheme, there are still scenarios where artifacts could occur
+Usage
+Upload Images:
+Click the file input to select multiple images (PNG, JPEG, etc.).
 
-Sharp Edges: The patch lasso copies pixels directly from the source layer without blending, which could create noticeable edges if the source and target regions have significant color or texture differences. The applyLassoBlend function (Alt + Drag) can be used to smooth these transitions.
+Images are resized to match the first image’s dimensions and displayed as thumbnails.
 
-Layer Selection: Since the patch lasso uses the layer at the lasso's starting point, choosing an inappropriate starting point could result in an undesired source layer. Users must click carefully to select the intended layer.
+Automatic Compositing:
+If two or more images are uploaded, compositing starts automatically.
 
-Performance: For very large images or complex lassos, the pixel-by-pixel processing in applyLassoPatch might be slow, especially on lower-end devices.
+Adjust the Threshold Slider to control how color differences affect layer selection (default: 15%).
 
-In summary the current lasso patching scheme uses a 4x4 pixel patch for simple clicks and a freeform lasso-based area patch for Ctrl + Drag operations. It replaces the 4x4 grid-based patching to eliminate grid-like artifacts, offering precise, user-controlled patching with irregular shapes. The scheme is well-implemented with robust error handling, undo support, and visual feedback, making it suitable for detailed image composition tasks.
+Click Compose! to recomposite with the current threshold.
+
+Edit the Composition:
+Patch Lasso (Ctrl+Drag): Draw a region to patch with pixels from the layer at the starting point.
+
+Blend Lasso (Alt+Drag): Draw a region to apply a feathering effect.
+
+Gradient Lasso (Shift+Drag): Draw a region to overlay a gradient.
+
+Patch Brush Click: Click to apply a circular patch with adjustable size (use the Brush Size Slider).
+
+Manage Layers:
+Remove images by clicking the "X" on thumbnails.
+
+Thumbnails update dynamically with layer indices and metadata.
+
+Save or Undo:
+Click Save Master Image to download the composed image.
+
+Click Undo or press Ctrl+Z to revert changes.
+
+Click Reset to clear everything and start over.
+
+Use Presets:
+Click By Tracy Rose to apply a predefined threshold (~13%).
+
+How It Works
+Aquiplicity 2025 composites images by comparing pixel color differences against a user-defined threshold. It then allows interactive editing via lasso and brush tools.
+Compositing Algorithm
+Image Loading:
+Images are loaded into an ImageStack class, resized to match the first image’s dimensions.
+
+Each image is converted to ImageData for pixel-level processing.
+
+Smoothing:
+Each layer is smoothed (6 iterations) to reduce noise, using a 4-neighbor averaging filter.
+
+Threshold-Based Compositing:
+For each pixel, the smoothed color of the base layer (first image) is compared to other layers.
+
+If the color distance (Euclidean distance in RGB space) exceeds the threshold, the pixel is taken from the highest-indexed layer meeting the condition.
+
+The result is a masterImageData (composed image) and a layerMatrix (indicating which layer each pixel came from).
+
+Interactive Editing:
+Patch Lasso/Brush: Copies pixels from the layer indicated by the layerMatrix at the starting point or click location.
+
+Blend Lasso: Averages pixels within a 2-pixel radius inside the lasso for a feathering effect.
+
+Gradient Lasso: Samples colors at the lasso’s edges to create a linear gradient overlay.
+
+User Interface
+Marquee: Displays instructions (e.g., “Patch (Ctrl+Drag) / Blend (Alt+Drag)”).
+
+Controls: Includes file input, sliders, and buttons for compositing, undoing, resetting, and saving.
+
+Thumbnail Strip: Shows image previews with remove buttons.
+
+Canvas: Displays the composed image and supports lasso drawing and brush clicks.
+
+Status Bar: Provides real-time feedback (e.g., “Processing pixels... (50%)”).
+
+Technical Details
+Architecture
+HTML Structure:
+A single index.html file with embedded CSS and JavaScript.
+
+Layout: Marquee, controls, thumbnail strip, and working area with a canvas.
+
+CSS:
+Flexbox-based responsive layout.
+
+Custom styles for buttons, sliders, thumbnails, and canvas.
+
+Hover and active states for interactive elements.
+
+JavaScript:
+ImageStack Class:
+Manages image loading, smoothing, and compositing.
+
+Methods: addImage, smoothLayer, colorDistance, compose.
+
+Global State:
+Variables like masterImageData, layerMatrix, lassoPoints, and historyStack.
+
+Event Handlers:
+Canvas events for lasso drawing and brush clicks.
+
+Global mouse events for lasso completion.
+
+Keyboard shortcuts for undo.
+
+Utility Functions:
+fitToScreen: Scales canvas to fit the working area.
+
+updateStatus: Displays messages and errors.
+
+saveStateForUndo: Stores image states for undo.
+
+Key Components
+Canvas: Uses the 2D context (willReadFrequently: true) for efficient pixel operations.
+
+Sliders:
+Threshold: Maps 0.01–1.0 to 0.01%–100% for color difference.
+
+Brush Size: Adjustable from 4px to 200px for patch brush clicks.
+
+Undo System:
+Stores up to 15 ImageData states in historyStack.
+
+Triggered by lasso applications, brush clicks, or image removal.
+
+Lasso System:
+Stores points in lassoPoints and uses a point-in-polygon algorithm (isPointInLasso).
+
+Supports three modes: patch, blend, and gradient.
+
+Performance Considerations
+Image Size:
+Warns for resolutions above 4000x4000 pixels due to memory and performance concerns.
+
+Resizes images to match the first image’s dimensions.
+
+Smoothing:
+Uses Float32Array for precision during smoothing iterations.
+
+Processes pixels asynchronously with setTimeout to prevent UI freezing.
+
+Compositing:
+Reports progress every 5% to keep the UI responsive.
+
+Uses Uint8ClampedArray for efficient pixel manipulation.
+
+File Structure
+
+aquiplicity-2025/
+├── index.html       # Main application file (HTML, CSS, JavaScript)
+├── README.md        # This documentation
+└── LICENSE          # License file (to be added)
+
+Contributing
+Contributions are welcome! To contribute:
+Fork the Repository:
+bash
+
+git fork https://github.com/your-username/aquiplicity-2025.git
+
+Create a Feature Branch:
+bash
+
+git checkout -b feature/your-feature-name
+
+Make Changes:
+Follow the existing code style (e.g., consistent indentation, descriptive variable names).
+
+Update documentation for new features or changes.
+
+Test thoroughly in multiple browsers.
+
+Submit a Pull Request:
+Push your branch to your fork.
+
+Open a PR with a detailed description of your changes.
+
+Contribution Ideas
+Add support for additional image formats (e.g., WebP).
+
+Implement zoom/pan for the canvas.
+
+Enhance the undo system to include redo functionality.
+
+Optimize performance for large images.
+
+Known Issues
+Large Images:
+Images above 4000x4000 pixels may cause slow performance or memory issues.
+
+Mitigation: Warns users and suggests resizing images beforehand.
+
+Canvas Tainting:
+Saving may fail if images cause canvas tainting (e.g., cross-origin issues).
+
+Workaround: Use a local server to serve files.
+
+Lasso Cancellation:
+Releasing the modifier key (Ctrl/Alt/Shift) before mouse-up cancels the lasso, which may confuse users.
+
+Browser Compatibility:
+Not tested extensively on older browsers (e.g., IE) or mobile devices.
+
+Future Enhancements
+Mobile Support:
+Add touch events for lasso and brush interactions.
+
+Optimize layout for smaller screens.
+
+Advanced Editing Tools:
+Support for freehand drawing or shape-based selections.
+
+Add color adjustment or filter options.
+
+Redo Functionality:
+Extend the undo system to include redo actions.
+
+Live Demo:
+Host a demo on GitHub Pages or a similar platform.
+
+Export Options:
+Allow saving in JPEG or WebP formats.
+
+Export layer matrices or project files for later editing.
+
+License
+This project is licensed under the MIT License. See the LICENSE file for details.
+Acknowledgements
+Tracy Rose: Inspiration for the preset threshold setting.
+
+HTML5 Canvas: For enabling powerful in-browser image manipulation.
+
+Open Source Community: For tools and libraries that make projects like this possible.
 
