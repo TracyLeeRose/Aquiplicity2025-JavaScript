@@ -3,7 +3,7 @@
 Aquiplicity 2025 is a browser-based image compositing tool built with HTML5, CSS, and JavaScript. It enables users to upload multiple images, composite them using a single-threshold algorithm, and interactively refine the output using lasso-based and brush-based editing tools. The tool supports advanced features like undo, dynamic brush sizing, and gradient overlays, making it suitable for creative image manipulation tasks.
 Table of Contents
 
-Features (#features)
+~ Features (#features)
 Demo (#demo)
 Installation (#installation)
 Usage (#usage)
@@ -16,7 +16,7 @@ Future Enhancements (#future-enhancements)
 License (#license)
 Acknowledgements (#acknowledgements)
 
-Features:
+~ Features:
 
 =- Image Upload and Management:
 Upload multiple images (up to 15) via a file input.
@@ -32,7 +32,7 @@ Automatic compositing of multiple images using a single-threshold algorithm base
 
 =- "Tracy Rose" preset for quick threshold configuration (~13%).
 
-Interactive Editing:
+~ Interactive Editing:
 
 =- Patch Lasso (Ctrl+Drag): Select a region to replace with pixels from the layer at the starting point.
 
@@ -42,17 +42,17 @@ Interactive Editing:
 
 =- Patch Brush Click: Click to apply a circular patch from the layer at the click point, with adjustable brush size (4px to 200px).
 
-Undo and Reset:
+~ Undo and Reset:
 =- Undo up to 15 actions (e.g., lasso applications, brush clicks).
 
 =- Reset the application to clear all images, canvas, and settings.
 
-Canvas and Output:
+~ Canvas and Output:
 =- Responsive canvas that fits images to the screen while preserving aspect ratio.
 
 =- Save the composed image as a PNG file with a default filename (Aquiplicity_Master_BrushClick.png).
 
-User Interface:
+~ User Interface:
 =- Marquee with instructions for quick reference.
 
 =- Status bar for real-time feedback (e.g., processing progress, errors).
@@ -61,10 +61,10 @@ User Interface:
 
 =- Smooth animations and hover effects for buttons and thumbnails.
 
-Keyboard Shortcuts:
+~ Keyboard Shortcuts:
 Ctrl+Z or Cmd+Z for undo.
 
-Demo
+~ Demo
 To see Aquiplicity 2025 in action:
 Clone the repository.
 
@@ -80,7 +80,7 @@ A modern web browser (Chrome, Firefox, Edge, or Safari).
 
 Basic knowledge of HTML and JavaScript for development or customization.
 
-Steps
+~ Steps
 Clone the Repository:
 bash
 
