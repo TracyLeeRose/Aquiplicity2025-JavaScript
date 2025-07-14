@@ -16,20 +16,21 @@ Future Enhancements (#future-enhancements)
 License (#license)
 Acknowledgements (#acknowledgements)
 
-Features
-Image Upload and Management:
+Features:
+
+=- Image Upload and Management:
 Upload multiple images (up to 15) via a file input.
 
-Display thumbnails in a scrollable sidebar with metadata (layer index, filename, dimensions).
+=- Display thumbnails in a scrollable sidebar with metadata (layer index, filename, dimensions).
 
-Remove individual images with a clickable "X" button on thumbnails.
+=- Remove individual images with a clickable "X" button on thumbnails.
 
-Image Compositing:
+=- Image Compositing:
 Automatic compositing of multiple images using a single-threshold algorithm based on color distance.
 
-Adjustable threshold slider (0.01% to 100% difference) for fine-tuning composition sensitivity.
+=- Adjustable threshold slider (0.01% to 100% difference) for fine-tuning composition sensitivity.
 
-"Tracy Rose" preset for quick threshold configuration (~13%).
+=- "Tracy Rose" preset for quick threshold configuration (~13%).
 
 Interactive Editing:
 Patch Lasso (Ctrl+Drag): Select a region to replace with pixels from the layer at the starting point.
