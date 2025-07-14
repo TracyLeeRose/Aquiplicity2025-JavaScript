@@ -21,47 +21,47 @@ Image Upload and Management:
 Upload multiple images (up to 15) via a file input.
 
 Display thumbnails in a scrollable sidebar with metadata (layer index, filename, dimensions).
-.
+
 Remove individual images with a clickable "X" button on thumbnails.
-.
+
 Image Compositing:
 Automatic compositing of multiple images using a single-threshold algorithm based on color distance.
-.
+
 Adjustable threshold slider (0.01% to 100% difference) for fine-tuning composition sensitivity.
-.
+
 "Tracy Rose" preset for quick threshold configuration (~13%).
-.
+
 Interactive Editing:
 Patch Lasso (Ctrl+Drag): Select a region to replace with pixels from the layer at the starting point.
-.
+
 Blend Lasso (Alt+Drag): Apply a feathering effect within a selected region using a 2-pixel radius.
-.
+
 Gradient Lasso (Shift+Drag): Overlay a gradient based on sampled colors within the selected region (25% opacity).
-.
+
 Patch Brush Click: Click to apply a circular patch from the layer at the click point, with adjustable brush size (4px to 200px).
-.
+
 Undo and Reset:
 Undo up to 15 actions (e.g., lasso applications, brush clicks).
-.
+
 Reset the application to clear all images, canvas, and settings.
-.
+
 Canvas and Output:
 Responsive canvas that fits images to the screen while preserving aspect ratio.
-.
+
 Save the composed image as a PNG file with a default filename (Aquiplicity_Master_BrushClick.png).
-.
+
 User Interface:
 Marquee with instructions for quick reference.
-.
+
 Status bar for real-time feedback (e.g., processing progress, errors).
-.
+
 Responsive layout with a thumbnail strip, controls, and working area.
-.
+
 Smooth animations and hover effects for buttons and thumbnails.
 
 Keyboard Shortcuts:
 Ctrl+Z or Cmd+Z for undo.
-.
+
 Demo
 To see Aquiplicity 2025 in action:
 Clone the repository.
@@ -129,50 +129,50 @@ Thumbnails update dynamically with layer indices and metadata.
 
 Save or Undo:
 Click Save Master Image to download the composed image.
-.
+
 Click Undo or press Ctrl+Z to revert changes.
-.
+
 Click Reset to clear everything and start over.
-.
+
 Use Presets:
 Click By Tracy Rose to apply a predefined threshold (~13%).
-.
+
 How It Works
 Aquiplicity 2025 composites images by comparing pixel color differences against a user-defined threshold. It then allows interactive editing via lasso and brush tools.
 Compositing Algorithm
 Image Loading:
 Images are loaded into an ImageStack class, resized to match the first image’s dimensions.
-.
+
 Each image is converted to ImageData for pixel-level processing.
-.
+
 Smoothing:
 Each layer is smoothed (6 iterations) to reduce noise, using a 4-neighbor averaging filter.
-.
+
 Threshold-Based Compositing:
 For each pixel, the smoothed color of the base layer (first image) is compared to other layers.
-.
+
 If the color distance (Euclidean distance in RGB space) exceeds the threshold, the pixel is taken from the highest-indexed layer meeting the condition.
-.
+
 The result is a masterImageData (composed image) and a layerMatrix (indicating which layer each pixel came from).
-.
+
 Interactive Editing:
 Patch Lasso/Brush: Copies pixels from the layer indicated by the layerMatrix at the starting point or click location.
-.
+
 Blend Lasso: Averages pixels within a 2-pixel radius inside the lasso for a feathering effect.
-.
+
 Gradient Lasso: Samples colors at the lasso’s edges to create a linear gradient overlay.
-.
+
 User Interface
 Marquee: Displays instructions (e.g., “Patch (Ctrl+Drag) / Blend (Alt+Drag)”).
-.
+
 Controls: Includes file input, sliders, and buttons for compositing, undoing, resetting, and saving.
-.
+
 Thumbnail Strip: Shows image previews with remove buttons.
-.
+
 Canvas: Displays the composed image and supports lasso drawing and brush clicks.
-.
+
 Status Bar: Provides real-time feedback (e.g., “Processing pixels... (50%)”).
-.
+
 Technical Details
 Architecture
 HTML Structure:
