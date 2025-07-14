@@ -33,32 +33,33 @@ Automatic compositing of multiple images using a single-threshold algorithm base
 =- "Tracy Rose" preset for quick threshold configuration (~13%).
 
 Interactive Editing:
-Patch Lasso (Ctrl+Drag): Select a region to replace with pixels from the layer at the starting point.
 
-Blend Lasso (Alt+Drag): Apply a feathering effect within a selected region using a 2-pixel radius.
+=- Patch Lasso (Ctrl+Drag): Select a region to replace with pixels from the layer at the starting point.
 
-Gradient Lasso (Shift+Drag): Overlay a gradient based on sampled colors within the selected region (25% opacity).
+=- Blend Lasso (Alt+Drag): Apply a feathering effect within a selected region using a 2-pixel radius.
 
-Patch Brush Click: Click to apply a circular patch from the layer at the click point, with adjustable brush size (4px to 200px).
+=- Gradient Lasso (Shift+Drag): Overlay a gradient based on sampled colors within the selected region (25% opacity).
+
+=- Patch Brush Click: Click to apply a circular patch from the layer at the click point, with adjustable brush size (4px to 200px).
 
 Undo and Reset:
-Undo up to 15 actions (e.g., lasso applications, brush clicks).
+=- Undo up to 15 actions (e.g., lasso applications, brush clicks).
 
-Reset the application to clear all images, canvas, and settings.
+=- Reset the application to clear all images, canvas, and settings.
 
 Canvas and Output:
-Responsive canvas that fits images to the screen while preserving aspect ratio.
+=- Responsive canvas that fits images to the screen while preserving aspect ratio.
 
-Save the composed image as a PNG file with a default filename (Aquiplicity_Master_BrushClick.png).
+=- Save the composed image as a PNG file with a default filename (Aquiplicity_Master_BrushClick.png).
 
 User Interface:
-Marquee with instructions for quick reference.
+=- Marquee with instructions for quick reference.
 
-Status bar for real-time feedback (e.g., processing progress, errors).
+=- Status bar for real-time feedback (e.g., processing progress, errors).
 
-Responsive layout with a thumbnail strip, controls, and working area.
+=- Responsive layout with a thumbnail strip, controls, and working area.
 
-Smooth animations and hover effects for buttons and thumbnails.
+=- Smooth animations and hover effects for buttons and thumbnails.
 
 Keyboard Shortcuts:
 Ctrl+Z or Cmd+Z for undo.
