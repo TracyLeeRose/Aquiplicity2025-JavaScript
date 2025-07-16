@@ -1,6 +1,6 @@
 # Aquiplicity 2025: The Industrial Art Composer by Tracy Rose
 
-![Aquiplicity 2025 UI](https://i.imgur.com/gD4iZkL.png)
+
 
 Aquiplicity 2025 is a powerful, browser-based digital art tool that allows users to compose and blend multiple images into a single, unique piece of art. It uses a sophisticated color-difference algorithm to create a base composition, which can then be artistically modified in real-time using an intuitive suite of brush and lasso tools. The entire application runs client-side with zero dependencies, written in pure HTML, CSS, and JavaScript.
 
