@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Aquiplicity 2025 JavaScript (Single Threshold - Area Lasso & Brush Click)</title>
+    <title>Aquiplicity 2025 JavaScript (Single Threshold - Area Lasso & Brush Draw)</title>
     <style>
         /* CSS Variables for Theming */
         :root {
@@ -240,7 +240,7 @@
 </head>
 <body>
     <!-- Marquee and Controls -->
-    <div id="marqueeContainer"><div id="marquee">Images auto-composed on load. Adjust Threshold & Compose!. Patch (Ctrl+Drag) / Blend (Alt+Drag) / Gradient (Shift+Drag) / Patch Brush (Click - size adjustable) / Undo. Click 'X' on thumbnails to remove.</div></div>
+    <div id="marqueeContainer"><div id="marquee">Images auto-composed on load. Adjust Threshold & Compose!. Patch (Ctrl+Drag) / Blend (Alt+Drag) / Gradient (Shift+Drag) / Patch Brush (Draw - size adjustable) / Undo. Click 'X' on thumbnails to remove.</div></div>
     <div id="controls">
         <input type="file" id="imageInput" multiple accept="image/*">
         <button id="composeButton" class="action-button" onclick="composeImages()" disabled>Compose!</button>
@@ -323,7 +323,7 @@
             }
         }
 
-        // --- Global Variables (unchanged) ---
+        // --- Global Variables ---
         const MAX_HISTORY = 15;
         const BLEND_LASSO_RADIUS = 2;
         const GRADIENT_LASSO_OPACITY = 0.25;
@@ -332,8 +332,9 @@
         let imageStack = new ImageStack();
         let statusEl, composeButton, thumbnailStrip, undoButton, saveButton;
         let masterImageData = null; let layerMatrix = null;
-        let lassoPoints = []; let drawingLasso = false;
-        let isPatchLasso = false; let isBlendLasso = false; let isGradientLasso = false;
+        let lassoPoints = [];
+        let drawingLasso = false; let isPatchLasso = false; let isBlendLasso = false; let isGradientLasso = false;
+        let drawingBrush = false; // For new brush logic
         let historyStack = []; let isComposing = false;
 
         // --- Initialization ---
@@ -372,10 +373,10 @@
             }
 
             updateUndoButtonState(); updateSaveButtonState(); updateComposeButtonState();
-            console.log('Aquiplicity 2025 Initialized (Single Threshold, Area Lasso, Brush Click w/ Slider)');
+            console.log('Aquiplicity 2025 Initialized (Single Threshold, Area Lasso, Brush Draw w/ Slider)');
         });
 
-        // --- UI Update Functions (unchanged) ---
+        // --- UI Update Functions ---
         function updateStatus(message, isError = false) { if (statusEl) { statusEl.textContent = message; const errorColor = document.body.classList.contains('dark-mode') ? '#ff8a80' : 'red'; statusEl.style.color = isError ? errorColor : 'var(--text-secondary)'; } if (isError) { console.error("Status:", message); } else { console.log("Status:", message); } }
         function updateUndoButtonState() { if (undoButton) undoButton.disabled = historyStack.length === 0 || isComposing; }
         function updateSaveButtonState() { if (saveButton) saveButton.disabled = masterImageData === null || isComposing; }
@@ -392,19 +393,19 @@
             document.querySelectorAll('.remove-thumbnail-btn').forEach(btn => btn.disabled = busy);
          }
 
-        // --- Core Logic Functions (unchanged) ---
+        // --- Core Logic Functions ---
         function fitToScreen(imgWidth, imgHeight) { const container = document.getElementById('workingArea'); if (!container) return { width: imgWidth, height: imgHeight }; const containerStyle = window.getComputedStyle(container); const paddingX = parseFloat(containerStyle.paddingLeft) + parseFloat(containerStyle.paddingRight); const paddingY = parseFloat(containerStyle.paddingTop) + parseFloat(containerStyle.paddingBottom); const buttonsHeight = document.getElementById('canvasButtonContainer')?.offsetHeight || 0; const statusHeight = statusEl?.offsetHeight || 0; const maxWidth = container.clientWidth - paddingX - 2; const maxHeight = container.clientHeight - paddingY - buttonsHeight - statusHeight - 12; const aspectRatio = imgWidth / imgHeight; let newWidth = Math.min(imgWidth, maxWidth); let newHeight = newWidth / aspectRatio; if (newHeight > maxHeight) { newHeight = maxHeight; newWidth = newHeight * aspectRatio; } newWidth = Math.max(10, Math.floor(newWidth)); newHeight = Math.max(10, Math.floor(newHeight)); return { width: newWidth, height: newHeight }; }
         function getThreshold() { return parseFloat(document.getElementById('threshold').value) * 255; }
         function getBrushSize() { return parseInt(document.getElementById('brushSize').value, 10); }
 
-        // --- Undo Functionality (unchanged) ---
+        // --- Undo Functionality ---
         function saveStateForUndo(actionDescription = "action") { if (!masterImageData || isComposing) return; try { const stateToSave = new ImageData( new Uint8ClampedArray(masterImageData.data), masterImageData.width, masterImageData.height ); historyStack.push(stateToSave); if (historyStack.length > MAX_HISTORY) { historyStack.shift(); } updateUndoButtonState(); console.log(`Saved state for undo: ${actionDescription}`); } catch(e){ console.error("Failed to save state for undo:", e); updateStatus("Error saving undo state.", true);} }
         function undoAction() { if (historyStack.length === 0 || isComposing) { updateStatus(isComposing ? "Cannot undo while composing" : "Nothing to undo."); return; } const previousState = historyStack.pop(); masterImageData = previousState; displayMasterImage(); updateUndoButtonState(); updateStatus('Undo successful'); console.log("Undo action performed.");}
 
-        // --- Keyboard Shortcuts (unchanged) ---
+        // --- Keyboard Shortcuts ---
         function setupKeyboardShortcuts() { document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (!undoButton.disabled) { undoAction(); } } }); }
 
-        // --- Image Handling (unchanged) ---
+        // --- Image Handling ---
         async function handleImageUpload(e) {
             const files = e.target.files; if (!files.length) { updateStatus('No files selected'); return; }
             setUIBusy(true); updateStatus(`Loading ${files.length} image(s)...`); resetApplicationState(false);
@@ -443,7 +444,7 @@
             console.log(`Image stack size now ${imageStack.images.length}`); if(imageStack.images.length < 2) { updateStatus(`Image removed. Need at least two images to compose. ${imageStack.images.length} images remaining.`); } else { updateStatus(`Image removed. Click Compose! to update. ${imageStack.images.length} images remaining.`); }
         }
 
-        // --- Composition Function (unchanged) ---
+        // --- Composition Function ---
         async function composeImages() {
             if (imageStack.images.length < 2) { updateStatus('Need at least two images to compose'); return; } if (isComposing) { updateStatus("Composition already in progress."); return; } setUIBusy(true); updateStatus('Starting composition...'); await new Promise(resolve => setTimeout(resolve, 10)); const thresholdInternal = getThreshold();
             try {
@@ -454,7 +455,7 @@
             } catch (error) { console.error('Composition failed:', error); updateStatus(`Error during composition: ${error.message}`, true); masterImageData = null; layerMatrix = null; updateSaveButtonState(); displayMasterImage(); } finally { setUIBusy(false); }
         }
 
-        // --- Display Function (Updated for dark mode) ---
+        // --- Display Function ---
         function displayMasterImage() {
              const emptyColor = document.body.classList.contains('dark-mode') ? '#3c3c3c' : '#cccccc';
              ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -465,44 +466,173 @@
              try { ctx.putImageData(masterImageData, 0, 0); } catch (e) { console.error("Error using putImageData:", e); updateStatus("Error displaying image. Canvas might be too large?", true); ctx.fillStyle = '#ffcccc'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
         }
 
-        // --- Canvas Interaction (unchanged) ---
-        function handleGlobalMouseMove(e) { if (!drawingLasso || !masterImageData || isComposing) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const x = (e.clientX - rect.left) * scaleX; const y = (e.clientY - rect.top) * scaleY; const safeX = Math.max(0, Math.min(x, canvas.width - 1)); const safeY = Math.max(0, Math.min(y, canvas.height - 1)); const lastPoint = lassoPoints.length > 0 ? lassoPoints[lassoPoints.length - 1] : null; if (!lastPoint || Math.abs(safeX - lastPoint.x) > 1 || Math.abs(safeY - lastPoint.y) > 1) { lassoPoints.push({x: safeX, y: safeY}); } redrawCanvasWithLasso(); }
-        function handleGlobalMouseUp(e) { if (!drawingLasso || !masterImageData || isComposing) return; window.removeEventListener('mousemove', handleGlobalMouseMove); window.removeEventListener('mouseup', handleGlobalMouseUp); const wasDrawingLasso = drawingLasso; const wasPatchLasso = isPatchLasso; const wasBlendLasso = isBlendLasso; const wasGradientLasso = isGradientLasso; drawingLasso = false; isPatchLasso = false; isBlendLasso = false; isGradientLasso = false; const modifierStillPressed = (wasPatchLasso && e.ctrlKey) || (wasBlendLasso && e.altKey) || (wasGradientLasso && e.shiftKey); if (!modifierStillPressed && wasDrawingLasso) { console.log("Modifier key released before mouse up, cancelling."); clearLassoAndRedraw(); updateStatus('Lasso cancelled (modifier key released).'); lassoPoints = []; return; } if (lassoPoints.length < 3) { console.log("Lasso too small, cancelling."); clearLassoAndRedraw(); updateStatus('Lasso too small, action cancelled.'); lassoPoints = []; return; } if (wasPatchLasso) { applyLassoPatch(); } else if (wasBlendLasso) { applyLassoBlend(); } else if (wasGradientLasso) { applyLassoGradient(); } }
+        // --- Canvas Interaction ---
         function setupCanvasEvents() {
              canvas.addEventListener('mousedown', (e) => {
-                 if (isComposing || !masterImageData) { updateStatus("Cannot interact: Not ready or composing."); return; }
-                 const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const x = Math.floor((e.clientX - rect.left) * scaleX); const y = Math.floor((e.clientY - rect.top) * scaleY); const safeX = Math.max(0, Math.min(x, canvas.width - 1)); const safeY = Math.max(0, Math.min(y, canvas.height - 1));
-                 let actionTaken = false; let actionDesc = "";
-                 if (e.shiftKey) { if (drawingLasso) return; actionTaken = true; actionDesc = "gradient overlay lasso"; drawingLasso = true; isPatchLasso = false; isBlendLasso = false; isGradientLasso = true; lassoPoints = [{x: safeX, y: safeY}]; updateStatus(`Drawing gradient overlay lasso... Drag and release Shift+Mouse.`);
-                 } else if (e.ctrlKey) { if (drawingLasso) return; if (imageStack.images.length < 2 || !layerMatrix) { updateStatus("Patch lasso (Ctrl+Drag) requires multiple images loaded and composed."); return; } actionTaken = true; actionDesc = "patch lasso"; drawingLasso = true; isPatchLasso = true; isBlendLasso = false; isGradientLasso = false; lassoPoints = [{x: safeX, y: safeY}]; updateStatus(`Drawing patch lasso... Drag and release Ctrl+Mouse.`);
-                 } else if (e.altKey) { if (drawingLasso) return; actionTaken = true; actionDesc = "blend lasso"; drawingLasso = true; isPatchLasso = false; isBlendLasso = true; isGradientLasso = false; lassoPoints = [{x: safeX, y: safeY}]; updateStatus(`Drawing blend lasso... Drag and release Alt+Mouse.`);
-                 } else { if (imageStack.images.length < 2 || !layerMatrix) { updateStatus("Patch brush click requires multiple images loaded and composed."); return; } isPatchLasso = false; isBlendLasso = false; isGradientLasso = false; drawingLasso = false; saveStateForUndo("patch brush click"); patchBrushRegion(safeX, safeY); displayMasterImage(); return; }
-                 if (actionTaken && drawingLasso) { saveStateForUndo(actionDesc); window.addEventListener('mousemove', handleGlobalMouseMove); window.addEventListener('mouseup', handleGlobalMouseUp); redrawCanvasWithLasso(); }
-             });
-         }
-        function patchBrushRegion(clickX, clickY) {
-             if (!masterImageData || !layerMatrix || imageStack.images.length < 2) { return; }
-             const w = masterImageData.width; const h = masterImageData.height; const brushDiameter = getBrushSize(); const radius = brushDiameter / 2; const radiusSq = radius * radius;
-             const matrixIndex = clickY * w + clickX;
-             if (matrixIndex < 0 || matrixIndex >= layerMatrix.length) { updateStatus('Error: Patch click coordinates invalid.', true); return; }
-             const selectedLayer = layerMatrix[matrixIndex];
-             if (selectedLayer === undefined || selectedLayer >= imageStack.images.length) { updateStatus(`Error: Invalid layer data (${selectedLayer}) at patch click location.`, true); return; }
-             const sourceImage = imageStack.images[selectedLayer]; const sourceData = sourceImage.data; const targetData = masterImageData.data; let pixelsPatched = 0;
-             const startX = Math.max(0, Math.floor(clickX - radius)); const endX = Math.min(w - 1, Math.ceil(clickX + radius)); const startY = Math.max(0, Math.floor(clickY - radius)); const endY = Math.min(h - 1, Math.ceil(clickY + radius));
-             for (let currentY = startY; currentY <= endY; currentY++) {
-                 for (let currentX = startX; currentX <= endX; currentX++) {
-                     const dx = currentX - clickX; const dy = currentY - clickY; const distSq = dx * dx + dy * dy;
-                     if (distSq <= radiusSq) {
-                         const targetIdx = (currentY * w + currentX) * 4; const sourceIdx = (currentY * w + currentX) * 4;
-                         if (targetIdx + 3 < targetData.length && sourceIdx + 3 < sourceData.length) {
-                             targetData[targetIdx] = sourceData[sourceIdx]; targetData[targetIdx + 1] = sourceData[sourceIdx + 1]; targetData[targetIdx + 2] = sourceData[sourceIdx + 2]; targetData[targetIdx + 3] = sourceData[sourceIdx + 3];
-                             pixelsPatched++;
-                         }
+                 if (isComposing || !masterImageData || drawingLasso || drawingBrush) { return; }
+
+                 const rect = canvas.getBoundingClientRect();
+                 const scaleX = canvas.width / rect.width;
+                 const scaleY = canvas.height / rect.height;
+                 const x = (e.clientX - rect.left) * scaleX;
+                 const y = (e.clientY - rect.top) * scaleY;
+                 const safeX = Math.max(0, Math.min(x, canvas.width - 1));
+                 const safeY = Math.max(0, Math.min(y, canvas.height - 1));
+
+                 let actionDesc = "";
+
+                 // Modifier keys for lasso tools
+                 if (e.shiftKey || e.ctrlKey || e.altKey) {
+                     if (e.shiftKey) {
+                         actionDesc = "gradient overlay lasso"; isGradientLasso = true;
+                         updateStatus(`Drawing gradient overlay lasso... Drag and release Shift+Mouse.`);
+                     } else if (e.ctrlKey) {
+                         if (imageStack.images.length < 2 || !layerMatrix) { updateStatus("Patch lasso (Ctrl+Drag) requires multiple images loaded and composed."); return; }
+                         actionDesc = "patch lasso"; isPatchLasso = true;
+                         updateStatus(`Drawing patch lasso... Drag and release Ctrl+Mouse.`);
+                     } else if (e.altKey) {
+                         actionDesc = "blend lasso"; isBlendLasso = true;
+                         updateStatus(`Drawing blend lasso... Drag and release Alt+Mouse.`);
                      }
+                     drawingLasso = true;
+                     lassoPoints = [{x: safeX, y: safeY}];
+                     saveStateForUndo(actionDesc);
+                     window.addEventListener('mousemove', handleGlobalMouseMove);
+                     window.addEventListener('mouseup', handleGlobalMouseUp);
+                     redrawCanvasWithLasso();
                  }
-             }
-             updateStatus(`Patched ${pixelsPatched} pixels in ${brushDiameter}px diameter brush from layer ${selectedLayer} at (${clickX}, ${clickY})`);
+                 // Default action: Brush drawing
+                 else {
+                    if (imageStack.images.length < 2 || !layerMatrix) {
+                        updateStatus("Brush tool requires multiple images loaded and composed.");
+                        return;
+                    }
+                    drawingBrush = true;
+                    lassoPoints = [{ x: safeX, y: safeY }]; // Use lassoPoints to store brush path
+                    saveStateForUndo("brush stroke");
+                    updateStatus('Drawing with brush... Release to apply from underlying layer.');
+
+                    // Add listeners for this specific brush action
+                    window.addEventListener('mousemove', handleBrushMouseMove);
+                    window.addEventListener('mouseup', handleBrushMouseUp);
+
+                    redrawCanvasWithBrushPreview();
+                 }
+             });
         }
+
+        function handleBrushMouseMove(e) {
+            if (!drawingBrush) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = (e.clientX - rect.left) * scaleX;
+            const y = (e.clientY - rect.top) * scaleY;
+            const safeX = Math.max(0, Math.min(x, canvas.width - 1));
+            const safeY = Math.max(0, Math.min(y, canvas.height - 1));
+
+            lassoPoints.push({x: safeX, y: safeY});
+            redrawCanvasWithBrushPreview();
+        }
+
+        function handleBrushMouseUp(e) {
+            if (!drawingBrush) return;
+            drawingBrush = false;
+            window.removeEventListener('mousemove', handleBrushMouseMove);
+            window.removeEventListener('mouseup', handleBrushMouseUp);
+            if (lassoPoints.length < 1) { clearLassoAndRedraw(); return; }
+            applyBrushStroke();
+        }
+
+        function redrawCanvasWithBrushPreview() {
+            if (!masterImageData) return;
+            ctx.putImageData(masterImageData, 0, 0);
+            if (lassoPoints.length < 1 || !drawingBrush) return;
+
+            ctx.globalAlpha = 1.0;
+            ctx.beginPath();
+            ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+            for (let i = 1; i < lassoPoints.length; i++) {
+                ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y);
+            }
+            ctx.strokeStyle = 'rgba(255, 105, 180, 0.7)';
+            ctx.lineWidth = getBrushSize();
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.stroke();
+        }
+
+        function applyBrushStroke() {
+            if (!masterImageData || !layerMatrix || imageStack.images.length < 2 || lassoPoints.length === 0) {
+                console.warn("Brush application conditions not met.");
+                clearLassoAndRedraw();
+                return;
+            }
+
+            const w = masterImageData.width;
+            const h = masterImageData.height;
+            const brushSize = getBrushSize();
+            const startX = Math.floor(lassoPoints[0].x);
+            const startY = Math.floor(lassoPoints[0].y);
+            const startMatrixIndex = startY * w + startX;
+            if (startMatrixIndex < 0 || startMatrixIndex >= layerMatrix.length) {
+                updateStatus("Error: Invalid starting point for brush.", true);
+                console.error(`Invalid startMatrixIndex: ${startMatrixIndex}`);
+                clearLassoAndRedraw();
+                return;
+            }
+            const selectedLayer = layerMatrix[startMatrixIndex];
+            const sourceImage = imageStack.images[selectedLayer];
+            if (!sourceImage) {
+                updateStatus(`Error: Could not find source image for layer ${selectedLayer}.`, true);
+                clearLassoAndRedraw();
+                return;
+            }
+
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = w;
+            maskCanvas.height = h;
+            const maskCtx = maskCanvas.getContext('2d', { willReadFrequently: true });
+            maskCtx.beginPath();
+            maskCtx.moveTo(lassoPoints[0].x, lassoPoints[0].y);
+            for (let i = 1; i < lassoPoints.length; i++) {
+                maskCtx.lineTo(lassoPoints[i].x, lassoPoints[i].y);
+            }
+            maskCtx.lineWidth = brushSize;
+            maskCtx.lineCap = 'round';
+            maskCtx.lineJoin = 'round';
+            maskCtx.strokeStyle = 'white';
+            maskCtx.stroke();
+
+            if (lassoPoints.length < 3) {
+                maskCtx.beginPath();
+                maskCtx.arc(startX, startY, brushSize / 2, 0, Math.PI * 2, false);
+                maskCtx.fillStyle = 'white';
+                maskCtx.fill();
+            }
+
+            const maskData = maskCtx.getImageData(0, 0, w, h).data;
+            const sourceData = sourceImage.data;
+            const targetData = masterImageData.data;
+            let pixelsPatched = 0;
+
+            for (let i = 0; i < maskData.length; i += 4) {
+                if (maskData[i + 3] > 0) {
+                    targetData[i]     = sourceData[i];
+                    targetData[i + 1] = sourceData[i + 1];
+                    targetData[i + 2] = sourceData[i + 2];
+                    targetData[i + 3] = sourceData[i + 3];
+                    pixelsPatched++;
+                }
+            }
+            lassoPoints = [];
+            displayMasterImage();
+            updateStatus(`Applied brush stroke from layer ${selectedLayer} (${pixelsPatched} pixels).`);
+        }
+
+        function handleGlobalMouseMove(e) { if (!drawingLasso || !masterImageData || isComposing) return; const rect = canvas.getBoundingClientRect(); const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height; const x = (e.clientX - rect.left) * scaleX; const y = (e.clientY - rect.top) * scaleY; const safeX = Math.max(0, Math.min(x, canvas.width - 1)); const safeY = Math.max(0, Math.min(y, canvas.height - 1)); const lastPoint = lassoPoints.length > 0 ? lassoPoints[lassoPoints.length - 1] : null; if (!lastPoint || Math.abs(safeX - lastPoint.x) > 1 || Math.abs(safeY - lastPoint.y) > 1) { lassoPoints.push({x: safeX, y: safeY}); } redrawCanvasWithLasso(); }
+        function handleGlobalMouseUp(e) { if (!drawingLasso || !masterImageData || isComposing) return; window.removeEventListener('mousemove', handleGlobalMouseMove); window.removeEventListener('mouseup', handleGlobalMouseUp); const wasDrawingLasso = drawingLasso; const wasPatchLasso = isPatchLasso; const wasBlendLasso = isBlendLasso; const wasGradientLasso = isGradientLasso; drawingLasso = false; isPatchLasso = false; isBlendLasso = false; isGradientLasso = false; const modifierStillPressed = (wasPatchLasso && e.ctrlKey) || (wasBlendLasso && e.altKey) || (wasGradientLasso && e.shiftKey); if (!modifierStillPressed && wasDrawingLasso) { console.log("Modifier key released before mouse up, cancelling."); clearLassoAndRedraw(); updateStatus('Lasso cancelled (modifier key released).'); lassoPoints = []; return; } if (lassoPoints.length < 3) { console.log("Lasso too small, cancelling."); clearLassoAndRedraw(); updateStatus('Lasso too small, action cancelled.'); lassoPoints = []; return; } if (wasPatchLasso) { applyLassoPatch(); } else if (wasBlendLasso) { applyLassoBlend(); } else if (wasGradientLasso) { applyLassoGradient(); } }
+
         function isPointInLasso(x, y, points) { let inside = false; for (let i = 0, j = points.length - 1; i < points.length; j = i++) { const xi = points[i].x, yi = points[i].y; const xj = points[j].x, yj = points[j].y; const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi); if (intersect) inside = !inside; } return inside; }
         function redrawCanvasWithLasso() { if (!masterImageData) return; ctx.putImageData(masterImageData, 0, 0); if (lassoPoints.length === 0 || !drawingLasso) return; ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.moveTo(lassoPoints[0].x, lassoPoints[0].y); for (let i = 1; i < lassoPoints.length; i++) { ctx.lineTo(lassoPoints[i].x, lassoPoints[i].y); } let fillStyle, strokeStyle; if (isPatchLasso) { fillStyle = 'rgba(0, 255, 0, 0.3)'; strokeStyle = 'rgba(0, 100, 0, 0.7)'; } else if (isBlendLasso) { fillStyle = 'rgba(255, 255, 0, 0.3)'; strokeStyle = 'rgba(100, 100, 0, 0.7)'; } else if (isGradientLasso) { fillStyle = 'rgba(255, 105, 180, 0.4)'; strokeStyle = 'rgba(255, 20, 147, 0.8)'; } else { fillStyle = 'rgba(150, 150, 150, 0.3)'; strokeStyle = 'rgba(50, 50, 50, 0.7)'; } ctx.fillStyle = fillStyle; ctx.strokeStyle = strokeStyle; ctx.lineWidth = 1; if (lassoPoints.length > 2) { ctx.closePath(); ctx.fill(); } ctx.stroke(); if (lassoPoints.length > 0) { const lastPt = lassoPoints[lassoPoints.length - 1]; ctx.fillStyle = strokeStyle; ctx.fillRect(lastPt.x - 1, lastPt.y - 1, 3, 3); } ctx.globalAlpha = 1.0; }
         function clearLassoAndRedraw() { lassoPoints = []; displayMasterImage(); }
@@ -510,12 +640,12 @@
         function applyLassoBlend() { if (!masterImageData || lassoPoints.length < 3) { console.warn("Lasso blend conditions not met."); clearLassoAndRedraw(); return; } const w = masterImageData.width; const h = masterImageData.height; const originalDataCopy = new Uint8ClampedArray(masterImageData.data); const targetData = masterImageData.data; const minX = Math.max(0, Math.floor(Math.min(...lassoPoints.map(p => p.x)))); const maxX = Math.min(w - 1, Math.ceil(Math.max(...lassoPoints.map(p => p.x)))); const minY = Math.max(0, Math.floor(Math.min(...lassoPoints.map(p => p.y)))); const maxY = Math.min(h - 1, Math.ceil(Math.max(...lassoPoints.map(p => p.y)))); let updatedPixels = 0; const radius = BLEND_LASSO_RADIUS; const radiusSq = radius * radius; for (let y = minY; y <= maxY; y++) { for (let x = minX; x <= maxX; x++) { if (isPointInLasso(x + 0.5, y + 0.5, lassoPoints)) { let r=0,g=0,b=0,a=0,cnt=0; const cX=x; const cY=y; for(let ky=-radius;ky<=radius;ky++){ for(let kx=-radius;kx<=radius;kx++){ if(kx*kx+ky*ky>radiusSq)continue; const nx=cX+kx; const ny=cY+ky; if(nx>=0&&nx<w&&ny>=0&&ny<h){ if(isPointInLasso(nx+0.5,ny+0.5,lassoPoints)){ const idx=(ny*w+nx)*4; if(idx+3<originalDataCopy.length){r+=originalDataCopy[idx];g+=originalDataCopy[idx+1];b+=originalDataCopy[idx+2];a+=originalDataCopy[idx+3];cnt++;}}}}} if(cnt>0){ const targetIdx=(y*w+x)*4; if(targetIdx+3<targetData.length){ targetData[targetIdx]=Math.round(r/cnt);targetData[targetIdx+1]=Math.round(g/cnt);targetData[targetIdx+2]=Math.round(b/cnt);targetData[targetIdx+3]=Math.round(a/cnt);updatedPixels++;}}}}} clearLassoAndRedraw(); updateStatus(`Applied blend/feather effect (${updatedPixels} pixels inside lasso).`); }
         function applyLassoGradient() { if (!masterImageData || lassoPoints.length < 3) { console.warn("Lasso gradient conditions not met."); clearLassoAndRedraw(); return; } console.log("Starting applyLassoGradient (Overlay Mode)..."); const w = masterImageData.width; const h = masterImageData.height; const originalData = new Uint8ClampedArray(masterImageData.data); const targetData = masterImageData.data; const minX = Math.max(0, Math.floor(Math.min(...lassoPoints.map(p => p.x)))); const maxX = Math.min(w - 1, Math.ceil(Math.max(...lassoPoints.map(p => p.x)))); const minY = Math.max(0, Math.floor(Math.min(...lassoPoints.map(p => p.y)))); const maxY = Math.min(h - 1, Math.ceil(Math.max(...lassoPoints.map(p => p.y)))); const gradWidth = maxX - minX; const gradHeight = maxY - minY; const isHorizontal = gradWidth >= gradHeight; const len = isHorizontal ? gradWidth : gradHeight; console.log(`Gradient direction: ${isHorizontal ? 'Horizontal' : 'Vertical'}, Length: ${len}`); const sampleW = Math.max(1, Math.floor(Math.min(gradWidth, gradHeight) * 0.1)); let sR=0,sG=0,sB=0,sA=0,sCnt=0; let eR=0,eG=0,eB=0,eA=0,eCnt=0; for (let y = minY; y <= maxY; y++) { for (let x = minX; x <= maxX; x++) { if (isPointInLasso(x + 0.5, y + 0.5, lassoPoints)) { const idx = (y * w + x) * 4; if (idx + 3 >= originalData.length) continue; const cR=originalData[idx],cG=originalData[idx+1],cB=originalData[idx+2],cA=originalData[idx+3]; if(isHorizontal){if(x<minX+sampleW){sR+=cR;sG+=cG;sB+=cB;sA+=cA;sCnt++;}else if(x>maxX-sampleW){eR+=cR;eG+=cG;eB+=cB;eA+=cA;eCnt++;}}else{if(y<minY+sampleW){sR+=cR;sG+=cG;sB+=cB;sA+=cA;sCnt++;}else if(y>maxY-sampleW){eR+=cR;eG+=cG;eB+=cB;eA+=cA;eCnt++;}}}}} const c1={r:sCnt>0?sR/sCnt:128,g:sCnt>0?sG/sCnt:128,b:sCnt>0?sB/sCnt:128,a:sCnt>0?sA/sCnt:255}; const c2={r:eCnt>0?eR/eCnt:128,g:eCnt>0?eG/eCnt:128,b:eCnt>0?eB/eCnt:128,a:eCnt>0?eA/eCnt:255}; if(sCnt===0||eCnt===0){console.warn("Could not sample start/end colors.");updateStatus("Warning: Could not sample gradient colors.");}else{console.log(`Start Color: R=${c1.r.toFixed(0)} G=${c1.g.toFixed(0)} B=${c1.b.toFixed(0)}`);console.log(`End Color: R=${c2.r.toFixed(0)} G=${c2.g.toFixed(0)} B=${c2.b.toFixed(0)}`);} let updatedPixels = 0; const op = GRADIENT_LASSO_OPACITY; const invOp = 1 - op; for (let y = minY; y <= maxY; y++) { for (let x = minX; x <= maxX; x++) { if (isPointInLasso(x + 0.5, y + 0.5, lassoPoints)) { let t = 0; if (len > 0) { t = isHorizontal ? (x - minX) / len : (y - minY) / len; t = Math.max(0, Math.min(1, t)); } const gradR = c1.r*(1-t)+c2.r*t; const gradG = c1.g*(1-t)+c2.g*t; const gradB = c1.b*(1-t)+c2.b*t; const idx = (y * w + x) * 4; if (idx + 3 < targetData.length) { const oR=originalData[idx],oG=originalData[idx+1],oB=originalData[idx+2],oA=originalData[idx+3]; targetData[idx]=Math.round(oR*invOp+gradR*op); targetData[idx+1]=Math.round(oG*invOp+gradG*op); targetData[idx+2]=Math.round(oB*invOp+gradB*op); targetData[idx+3]=oA; updatedPixels++; }}}} console.log(`Gradient overlay applied. Updated pixels: ${updatedPixels}`); clearLassoAndRedraw(); updateStatus(`Applied gradient overlay effect (${updatedPixels} pixels at ${op*100}% opacity).`); }
 
-        // --- Utility and Reset Functions (unchanged) ---
+        // --- Utility and Reset Functions ---
         function setTracyRosePreset() { if (isComposing) return; const slider = document.getElementById('threshold'); const valueDisplay = document.getElementById('threshold-value'); if (slider && valueDisplay) { slider.value = 0.13; const percentage = (parseFloat(slider.value) * 100).toFixed(0); valueDisplay.textContent = percentage + '%'; } updateStatus('Tracy Rose preset applied (Threshold ~13%). Click Compose to apply.'); console.log('Tracy Rose preset applied'); }
         function resetApplicationState(clearFileInput = true) {
             console.log("Resetting application state...");
             imageStack = new ImageStack(); masterImageData = null; layerMatrix = null;
-            lassoPoints = []; drawingLasso = false; isPatchLasso = false; isBlendLasso = false; isGradientLasso = false;
+            lassoPoints = []; drawingLasso = false; isPatchLasso = false; isBlendLasso = false; isGradientLasso = false; drawingBrush = false;
             historyStack = []; isComposing = false;
             if (ctx && canvas) {
                 canvas.width = 300; canvas.height = 150;
