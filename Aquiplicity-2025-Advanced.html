@@ -405,11 +405,11 @@
         // --- Keyboard Shortcuts ---
         function setupKeyboardShortcuts() { document.addEventListener('keydown', (e) => { if ((e.ctrlKey || e.metaKey) && e.key === 'z') { e.preventDefault(); if (!undoButton.disabled) { undoAction(); } } }); }
 
-        // --- Image Handling ---
+        // --- Image Handling --- THIS IS WHERE MAX images input is set
         async function handleImageUpload(e) {
             const files = e.target.files; if (!files.length) { updateStatus('No files selected'); return; }
             setUIBusy(true); updateStatus(`Loading ${files.length} image(s)...`); resetApplicationState(false);
-            const MAX_IMAGES = 15; let shouldAutoCompose = false;
+            const MAX_IMAGES = 100; let shouldAutoCompose = false;
             try {
                 for (let i = 0; i < Math.min(files.length, MAX_IMAGES); i++) {
                     const file = files[i]; updateStatus(`Loading image ${i + 1} of ${Math.min(files.length, MAX_IMAGES)}: ${file.name}`); await new Promise(resolve => setTimeout(resolve, 0));
